@@ -1,0 +1,123 @@
+Create a cinematic developer-style intro animation for the website.
+
+The animation should feel modern, beautiful and similar to a tech startup product intro.
+
+Sequence of the animation:
+
+1. FULLSCREEN CODE EDITOR
+
+When the website loads, show a full-screen code editor interface similar to VS Code.
+
+The background should be dark and minimalistic.
+
+The editor must include:
+- line numbers
+- syntax highlighting
+- blinking cursor
+- realistic code font
+- subtle glow effects
+
+Use a professional developer theme similar to VS Code Dark+.
+
+2. CODE TYPING ANIMATION
+
+The editor should automatically start typing code with a smooth typing animation.
+
+Example code:
+
+def start_learning():
+    print("Welcome to the future of programming")
+
+for lesson in range(1, 6):
+    print("Loading lesson", lesson)
+
+start_learning()
+
+The typing must feel realistic:
+- natural typing speed
+- pauses between lines
+- blinking cursor
+
+3. TERMINAL EXECUTION
+
+After the code finishes typing, simulate pressing ENTER and running the program.
+
+A terminal panel should slide up from the bottom.
+
+The terminal should display output line by line.
+
+Example terminal output:
+
+Welcome to the future of programming
+Loading lesson 1
+Loading lesson 2
+Loading lesson 3
+Loading lesson 4
+Loading lesson 5
+
+Add:
+
+- blinking terminal cursor
+- subtle glow
+- smooth typing effect
+
+4. WEBSITE WINDOW EMERGES
+
+After the terminal finishes executing, the terminal should trigger a visual transformation.
+
+The terminal window expands and morphs into a browser window.
+
+Inside that window appears the learning platform interface.
+
+The window should smoothly scale and expand.
+
+5. FULL WEBSITE REVEAL
+
+The platform interface gradually fills the entire screen.
+
+Add a smooth zoom and fade animation.
+
+The final state should be the main homepage of the platform.
+
+6. VISUAL STYLE
+
+Make the animation visually impressive.
+
+Use:
+
+- modern gradients
+- soft shadows
+- glowing highlights
+- smooth easing animations
+- high quality typography
+
+The animation should feel like a cinematic tech product intro.
+
+7. PERFORMANCE
+
+The animation must be smooth and optimized.
+
+Requirements:
+
+- runs smoothly at 60fps
+- responsive on desktop, tablet and mobile
+- optimized JavaScript animations
+- minimal performance impact
+
+8. FIRST VISIT ONLY
+
+The animation should run only once for new visitors.
+
+After that, the website loads directly.
+
+Use localStorage to remember that the animation already played.
+
+9. TRANSITION
+
+The transition between the intro animation and the website must feel seamless.
+
+The user should feel like the code they just saw has generated the website.
+
+The effect should feel magical and inspiring for developers.
+
+Make the animation visually beautiful and impressive.
