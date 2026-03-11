@@ -25,10 +25,9 @@ export function setupAuthInterceptor() {
     
     if (token) {
       init = init || {};
-      init.headers = {
-        ...init.headers,
-        Authorization: `Bearer ${token}`,
-      };
+      const headers = new Headers(init.headers);
+      headers.set("Authorization", `Bearer ${token}`);
+      init = { ...init, headers };
     }
     
     const response = await originalFetch(input, init);
