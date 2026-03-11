@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Play, Trophy, Flame, Star, ArrowRight } from "lucide-react";
+import { Play, Trophy, Flame, Star, ArrowRight, BookOpen } from "lucide-react";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -192,6 +192,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-// Ensure icons import is at top
-import { BookOpen } from "lucide-react";

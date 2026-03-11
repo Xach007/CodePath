@@ -101,6 +101,17 @@ export const GetCourseResponse = zod.object({
       description: zod.string(),
       orderIndex: zod.number(),
       lessonCount: zod.number(),
+      lessons: zod.array(
+        zod.object({
+          id: zod.number(),
+          moduleId: zod.number(),
+          title: zod.string(),
+          type: zod.enum(["theory", "quiz", "challenge"]),
+          orderIndex: zod.number(),
+          xpReward: zod.number(),
+          estimatedMinutes: zod.number(),
+        }),
+      ).optional(),
     }),
   ),
 });

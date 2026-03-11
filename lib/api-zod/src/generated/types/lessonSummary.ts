@@ -5,14 +5,13 @@
  * CodePath Learning Platform API
  * OpenAPI spec version: 0.1.0
  */
-import type { LessonSummary } from "./lessonSummary";
 
-export interface Module {
+export interface LessonSummary {
   id: number;
-  courseId: number;
+  moduleId: number;
   title: string;
-  description: string;
+  type: 'theory' | 'quiz' | 'challenge';
   orderIndex: number;
-  lessonCount: number;
-  lessons?: LessonSummary[];
+  xpReward: number;
+  estimatedMinutes: number;
 }

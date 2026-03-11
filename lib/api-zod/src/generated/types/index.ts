@@ -20,6 +20,7 @@ export * from "./gamificationProfile";
 export * from "./healthStatus";
 export * from "./leaderboardEntry";
 export * from "./lesson";
+export * from "./lessonSummary";
 export * from "./lessonDetail";
 export * from "./lessonDetailType";
 export * from "./lessonType";

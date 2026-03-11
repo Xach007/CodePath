@@ -41,9 +41,10 @@ router.get("/courses/:courseId", authMiddleware, async (req, res): Promise<void>
     .where(eq(modulesTable.courseId, course.id))
     .orderBy(asc(modulesTable.orderIndex));
 
-  const modulesWithCounts = await Promise.all(modules.map(async (mod) => {
+  const modulesWithLessons = await Promise.all(modules.map(async (mod) => {
     const lessons = await db.select().from(lessonsTable)
-      .where(eq(lessonsTable.moduleId, mod.id));
+      .where(eq(lessonsTable.moduleId, mod.id))
+      .orderBy(asc(lessonsTable.orderIndex));
     return {
       id: mod.id,
       courseId: mod.courseId,
@@ -51,12 +52,21 @@ router.get("/courses/:courseId", authMiddleware, async (req, res): Promise<void>
       description: mod.description,
       orderIndex: mod.orderIndex,
       lessonCount: lessons.length,
+      lessons: lessons.map(l => ({
+        id: l.id,
+        moduleId: l.moduleId,
+        title: l.title,
+        type: l.type,
+        orderIndex: l.orderIndex,
+        xpReward: l.xpReward,
+        estimatedMinutes: l.estimatedMinutes,
+      })),
     };
   }));
 
   res.json(GetCourseResponse.parse({
     ...course,
-    modules: modulesWithCounts,
+    modules: modulesWithLessons,
   }));
 });
 
