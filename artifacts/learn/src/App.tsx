@@ -12,6 +12,7 @@ import Lesson from "@/pages/lesson";
 import Profile from "@/pages/profile";
 import Achievements from "@/pages/achievements";
 import Leaderboard from "@/pages/leaderboard";
+import AdminPage from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -36,6 +37,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
+      <Route path="/admin" component={AdminPage} />
       <Route path="/lessons/:id" component={Lesson} />
       <Route path="/dashboard">{() => <LayoutPage component={Dashboard} />}</Route>
       <Route path="/courses/:id">{() => <LayoutPage component={CourseDetail} />}</Route>

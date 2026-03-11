@@ -57,6 +57,7 @@ React 19 + Vite app mounted at `/`. Uses wouter for routing, TanStack React Quer
 - **Profile** (`/profile`) — User stats, level progress, course progress
 - **Achievements** (`/achievements`) — Achievement grid (locked/unlocked)
 - **Leaderboard** (`/leaderboard`) — Top users by XP
+- **Admin** (`/admin`) — Admin login + dashboard with sidebar tabs: Dashboard stats, Courses CRUD (with modules/lessons), Users management, Achievements CRUD
 
 ### Key Features
 - **Dark mode**: Toggle in navbar, persists to localStorage, applies `dark` class to `<html>`
@@ -70,6 +71,13 @@ React 19 + Vite app mounted at `/`. Uses wouter for routing, TanStack React Quer
 
 Express 5 API server. All routes under `/api`.
 
+### Admin System
+- **Default admin account** seeded on startup: `admin` / `admin123` / `admin@example.com`
+- Admin credentials printed to terminal on server start
+- `isAdmin` boolean column on `users` table
+- Admin middleware (`adminAuth.ts`) validates token + checks `isAdmin` flag
+- Admin panel frontend at `/admin` with separate auth token (`admin_token` in localStorage)
+
 ### Routes
 - **Auth**: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
 - **Courses**: `GET /api/courses` (public), `GET /api/courses/:courseId` (public, published-only; includes modules with full lesson arrays)
@@ -77,6 +85,7 @@ Express 5 API server. All routes under `/api`.
 - **Lessons**: `GET /api/lessons/:lessonId`, `POST /api/lessons/:lessonId/complete`, `POST /api/lessons/:lessonId/quiz`, `POST /api/lessons/:lessonId/code`
 - **Gamification**: `GET /api/gamification/profile`, `GET /api/gamification/leaderboard`
 - **Progress**: `GET /api/progress`, `GET /api/progress/courses/:courseId`
+- **Admin**: `POST /api/admin/login`, `GET /api/admin/stats`, full CRUD for `/api/admin/users`, `/api/admin/courses`, `/api/admin/modules`, `/api/admin/lessons`, `/api/admin/quiz-questions`, `/api/admin/quiz-options`, `/api/admin/coding-challenges`, `/api/admin/test-cases`, `/api/admin/achievements`
 
 ### Auth
 - Simple SHA256 hashing with static salt (not bcrypt)
