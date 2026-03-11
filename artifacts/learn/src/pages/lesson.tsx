@@ -34,6 +34,8 @@ export default function Lesson() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [quizState, setQuizState] = useState<'idle' | 'submitted'>('idle');
   const [quizResult, setQuizResult] = useState<any>(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [collectedAnswers, setCollectedAnswers] = useState<{questionId: number, optionId: number}[]>([]);
 
   const [code, setCode] = useState<string>("");
   const [codeResult, setCodeResult] = useState<any>(null);
@@ -55,6 +57,8 @@ export default function Lesson() {
     setSelectedOption(null);
     setQuizState('idle');
     setQuizResult(null);
+    setCurrentQuestionIndex(0);
+    setCollectedAnswers([]);
     setCodeResult(null);
     setShowHints(false);
     setShowSuccessOverlay(false);
@@ -112,19 +116,45 @@ export default function Lesson() {
     }
   };
 
-  const handleQuizSubmit = async () => {
-    if (!selectedOption || !lesson.quizQuestions?.[0]) return;
-    try {
-      const res = await quizMutation.mutateAsync({
-        lessonId,
-        data: { answers: [{ questionId: lesson.quizQuestions[0].id, optionId: selectedOption }] }
-      });
-      setQuizResult(res);
+  const handleQuizCheck = async () => {
+    const questions = lesson.quizQuestions || [];
+    const question = questions[currentQuestionIndex];
+    if (!selectedOption || !question) return;
+
+    const newAnswers = [...collectedAnswers, { questionId: question.id, optionId: selectedOption }];
+    setCollectedAnswers(newAnswers);
+
+    const isLastQuestion = currentQuestionIndex >= questions.length - 1;
+
+    if (isLastQuestion) {
+      try {
+        const res = await quizMutation.mutateAsync({
+          lessonId,
+          data: { answers: newAnswers }
+        });
+        setQuizResult(res);
+        setQuizState('submitted');
+        if (res.passed) handleSuccess(res.xpEarned, res.newAchievements);
+      } catch (err) {
+        toast.error("Failed to submit quiz");
+      }
+    } else {
       setQuizState('submitted');
-      if (res.passed) handleSuccess(res.xpEarned, res.newAchievements);
-    } catch (err) {
-      toast.error("Failed to submit quiz");
     }
+  };
+
+  const handleQuizNext = () => {
+    setCurrentQuestionIndex(prev => prev + 1);
+    setSelectedOption(null);
+    setQuizState('idle');
+  };
+
+  const handleQuizRetry = () => {
+    setCurrentQuestionIndex(0);
+    setCollectedAnswers([]);
+    setSelectedOption(null);
+    setQuizState('idle');
+    setQuizResult(null);
   };
 
   const handleCodeSubmit = async () => {
@@ -149,11 +179,13 @@ export default function Lesson() {
     if (lesson.nextLessonId) {
       setLocation(`/lessons/${lesson.nextLessonId}`);
     } else {
-      setLocation(`/courses/${lesson.moduleId}`);
+      setLocation(`/courses`);
     }
   };
 
-  const progressValue = lesson.isCompleted ? 100 : 0;
+  const quizQuestionCount = lesson.quizQuestions?.length || 1;
+  const progressValue = lesson.isCompleted ? 100 : 
+    lesson.type === 'quiz' ? Math.round((currentQuestionIndex / quizQuestionCount) * 100) : 0;
 
   const renderTheory = () => (
     <div className="max-w-3xl mx-auto py-12 px-4 md:px-8 pb-32">
@@ -192,38 +224,67 @@ export default function Lesson() {
   );
 
   const renderQuiz = () => {
-    const question = lesson.quizQuestions?.[0];
+    const questions = lesson.quizQuestions || [];
+    if (questions.length === 0) return null;
+    const question = questions[currentQuestionIndex];
     if (!question) return null;
+
+    const totalQuestions = questions.length;
     const isSubmitted = quizState === 'submitted';
-    const isCorrect = quizResult?.results?.[0]?.correct;
+    const isLastQuestion = currentQuestionIndex >= totalQuestions - 1;
+    const isFinalSubmitted = isSubmitted && isLastQuestion && quizResult;
+
+    const currentResult = quizResult?.results?.find((r: any) => r.questionId === question.id);
+    const isCurrentCorrect = currentResult?.correct;
+    const correctOptionId = currentResult?.correctOptionId;
+
+    const quizProgressValue = ((currentQuestionIndex + (isSubmitted ? 1 : 0)) / totalQuestions) * 100;
 
     return (
       <div className="max-w-2xl mx-auto py-12 px-4 flex flex-col min-h-[calc(100vh-4rem)]">
         <motion.div
+          key={currentQuestionIndex}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="flex-1"
         >
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-              <span className="text-lg">❓</span>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                <span className="text-lg">❓</span>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                  Question {currentQuestionIndex + 1} of {totalQuestions}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Quiz</p>
-              <h2 className="text-xl md:text-2xl font-display font-bold">{question.question}</h2>
+            <div className="flex gap-1.5">
+              {Array.from({ length: totalQuestions }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-2.5 h-2.5 rounded-full transition-colors duration-300 ${
+                    i < currentQuestionIndex ? 'bg-success' :
+                    i === currentQuestionIndex ? 'bg-primary' :
+                    'bg-muted'
+                  }`}
+                />
+              ))}
             </div>
           </div>
+
+          <h2 className="text-xl md:text-2xl font-display font-bold mb-8">{question.question}</h2>
           
           <div className="space-y-3">
             {question.options.map((opt: any, optIdx: number) => {
               const isSelected = selectedOption === opt.id;
-              const correctOptionId = quizResult?.results?.[0]?.correctOptionId;
               
               let variant = "default";
-              if (isSubmitted && opt.id === correctOptionId) variant = "correct";
-              else if (isSubmitted && isSelected && !isCorrect) variant = "incorrect";
-              else if (isSubmitted) variant = "dimmed";
+              if (isSubmitted && isFinalSubmitted && opt.id === correctOptionId) variant = "correct";
+              else if (isSubmitted && isFinalSubmitted && isSelected && !isCurrentCorrect) variant = "incorrect";
+              else if (isSubmitted && isFinalSubmitted) variant = "dimmed";
+              else if (isSubmitted && isSelected) variant = "selected";
               else if (isSelected) variant = "selected";
 
               const styles: Record<string, string> = {
@@ -241,14 +302,14 @@ export default function Lesson() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: optIdx * 0.06, duration: 0.4 }}
                   className={`w-full border-2 text-left p-5 rounded-2xl transition-all duration-300 flex items-center gap-4 ${styles[variant]}`}
-                  onClick={() => !isSubmitted && setSelectedOption(opt.id)}
-                  disabled={isSubmitted}
+                  onClick={() => !(isSubmitted && isFinalSubmitted) && setSelectedOption(opt.id)}
+                  disabled={isSubmitted && isFinalSubmitted}
                 >
                   <div className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center shrink-0 text-sm font-bold transition-colors ${
                     variant === "selected" || variant === "correct" ? "border-current bg-current/10" : "border-border"
                   }`}>
-                    {isSubmitted && opt.id === correctOptionId ? <CheckCircle2 className="w-5 h-5 text-success" /> :
-                     isSubmitted && isSelected && !isCorrect ? <XCircle className="w-5 h-5 text-destructive" /> :
+                    {isFinalSubmitted && opt.id === correctOptionId ? <CheckCircle2 className="w-5 h-5 text-success" /> :
+                     isFinalSubmitted && isSelected && !isCurrentCorrect ? <XCircle className="w-5 h-5 text-destructive" /> :
                      String.fromCharCode(65 + optIdx)}
                   </div>
                   <span className="flex-1 font-medium leading-snug">{opt.text}</span>
@@ -258,21 +319,35 @@ export default function Lesson() {
           </div>
 
           <AnimatePresence>
-            {isSubmitted && quizResult?.results?.[0]?.explanation && (
+            {isFinalSubmitted && currentResult?.explanation && (
               <motion.div 
                 initial={{ opacity: 0, y: 12, height: 0 }}
                 animate={{ opacity: 1, y: 0, height: "auto" }}
                 exit={{ opacity: 0, y: -12, height: 0 }}
-                className={`mt-6 p-5 rounded-2xl ${isCorrect ? 'bg-success/8 border border-success/15' : 'bg-destructive/8 border border-destructive/15'}`}
+                className={`mt-6 p-5 rounded-2xl ${isCurrentCorrect ? 'bg-success/8 border border-success/15' : 'bg-destructive/8 border border-destructive/15'}`}
               >
-                <h4 className={`font-bold mb-1.5 flex items-center gap-2 text-sm ${isCorrect ? 'text-success' : 'text-destructive'}`}>
-                  {isCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                  {isCorrect ? "Correct!" : "Not quite right"}
+                <h4 className={`font-bold mb-1.5 flex items-center gap-2 text-sm ${isCurrentCorrect ? 'text-success' : 'text-destructive'}`}>
+                  {isCurrentCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                  {isCurrentCorrect ? "Correct!" : "Not quite right"}
                 </h4>
-                <p className="text-sm text-foreground/80 leading-relaxed">{quizResult.results[0].explanation}</p>
+                <p className="text-sm text-foreground/80 leading-relaxed">{currentResult.explanation}</p>
               </motion.div>
             )}
           </AnimatePresence>
+
+          {isFinalSubmitted && !quizResult.passed && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6 p-5 rounded-2xl bg-destructive/8 border border-destructive/15 text-center"
+            >
+              <p className="font-bold text-destructive mb-1">Quiz not passed</p>
+              <p className="text-sm text-foreground/70">
+                You got {quizResult.correctAnswers} out of {quizResult.totalQuestions} correct.
+                You need at least 70% to pass.
+              </p>
+            </motion.div>
+          )}
         </motion.div>
 
         <div className="pt-6 flex border-t border-border/50 mt-8">
@@ -281,16 +356,25 @@ export default function Lesson() {
               size="lg" 
               className="w-full rounded-xl h-14 text-base font-bold shadow-lg shadow-primary/15 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300" 
               disabled={!selectedOption || quizMutation.isPending}
-              onClick={handleQuizSubmit}
+              onClick={handleQuizCheck}
             >
-              {quizMutation.isPending ? "Checking..." : "Check Answer"}
+              {quizMutation.isPending ? "Submitting..." : isLastQuestion ? "Submit Quiz" : "Next Question"}
             </Button>
-          ) : !isCorrect ? (
+          ) : isSubmitted && !isLastQuestion ? (
+            <Button 
+              size="lg" 
+              className="w-full rounded-xl h-14 text-base font-bold shadow-lg shadow-primary/15 hover:scale-[1.01] active:scale-[0.99] transition-all duration-300"
+              onClick={handleQuizNext}
+            >
+              Next Question
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          ) : isFinalSubmitted && !quizResult.passed ? (
             <Button 
               size="lg" 
               variant="outline"
               className="w-full rounded-xl h-14 text-base font-bold border-2"
-              onClick={() => { setQuizState('idle'); setSelectedOption(null); setQuizResult(null); }}
+              onClick={handleQuizRetry}
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Try Again
