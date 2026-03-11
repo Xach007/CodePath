@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
@@ -5,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { motion } from "framer-motion";
 
 import { Layout } from "@/components/layout";
+import { IntroAnimation } from "@/components/intro-animation";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Courses from "@/pages/courses";
@@ -67,7 +69,32 @@ function Router() {
   );
 }
 
+const INTRO_SESSION_KEY = "intro-animation-shown";
+
+function getSessionFlag(key: string): boolean {
+  try {
+    return !!sessionStorage.getItem(key);
+  } catch {
+    return false;
+  }
+}
+
+function setSessionFlag(key: string): void {
+  try {
+    sessionStorage.setItem(key, "1");
+  } catch {}
+}
+
 function App() {
+  const [showIntro, setShowIntro] = useState(() => {
+    return !getSessionFlag(INTRO_SESSION_KEY);
+  });
+
+  const handleIntroComplete = useCallback(() => {
+    setSessionFlag(INTRO_SESSION_KEY);
+    setShowIntro(false);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -75,6 +102,7 @@ function App() {
           <Router />
         </WouterRouter>
         <Toaster richColors position="top-center" />
+        {showIntro && <IntroAnimation onComplete={handleIntroComplete} />}
       </TooltipProvider>
     </QueryClientProvider>
   );
