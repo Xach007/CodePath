@@ -23,7 +23,7 @@ router.get("/courses", async (_req, res): Promise<void> => {
   res.json(ListCoursesResponse.parse(courses));
 });
 
-router.get("/courses/:courseId", authMiddleware, async (req, res): Promise<void> => {
+router.get("/courses/:courseId", async (req, res): Promise<void> => {
   const params = GetCourseParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid course ID" });
@@ -32,7 +32,7 @@ router.get("/courses/:courseId", authMiddleware, async (req, res): Promise<void>
 
   const [course] = await db.select().from(coursesTable)
     .where(eq(coursesTable.id, params.data.courseId));
-  if (!course) {
+  if (!course || !course.isPublished) {
     res.status(404).json({ error: "Course not found" });
     return;
   }

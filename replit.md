@@ -62,8 +62,9 @@ React 19 + Vite app mounted at `/`. Uses wouter for routing, TanStack React Quer
 - **Dark mode**: Toggle in navbar, persists to localStorage, applies `dark` class to `<html>`
 - **Auth**: JWT stored in localStorage, injected via global fetch interceptor in `lib/auth.ts`; auto-logout on 401
 - **Gamification UI**: XP and streak badges in navbar, confetti on lesson completion, success overlay with XP and achievements
-- **Custom CSS variables**: `--success`, `--accent` (gamification yellow), `--primary` (indigo), custom fonts (Outfit for display, DM Sans for body)
+- **Custom CSS**: Inter + Plus Jakarta Sans fonts, indigo/purple/amber/green palette with dark mode variants, glassmorphism navbar, gradient text utilities, glow effects, shimmer/float/fadeUp animations, card-hover transitions
 - **Progress component**: Extended with `indicatorClassName` prop for custom indicator colors
+- **Routing**: Flat route structure in App.tsx (wouter nested Switch caused blank pages); Layout wraps interior pages via LayoutPage wrapper component
 
 ## Backend (`artifacts/api-server`)
 
@@ -71,7 +72,7 @@ Express 5 API server. All routes under `/api`.
 
 ### Routes
 - **Auth**: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
-- **Courses**: `GET /api/courses`, `GET /api/courses/:courseId` (includes modules with full lesson arrays)
+- **Courses**: `GET /api/courses` (public), `GET /api/courses/:courseId` (public, published-only; includes modules with full lesson arrays)
 - **Modules**: `GET /api/modules/:moduleId` (includes lessons)
 - **Lessons**: `GET /api/lessons/:lessonId`, `POST /api/lessons/:lessonId/complete`, `POST /api/lessons/:lessonId/quiz`, `POST /api/lessons/:lessonId/code`
 - **Gamification**: `GET /api/gamification/profile`, `GET /api/gamification/leaderboard`

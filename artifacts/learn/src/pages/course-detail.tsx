@@ -1,5 +1,4 @@
-import { useParams } from "wouter";
-import { Link } from "wouter";
+import { useParams, Link } from "wouter";
 import { useGetCourse, useGetCourseProgress } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -7,15 +6,21 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Play, Lock, CheckCircle2, Star, Clock, BookOpen, FileText, HelpCircle, Code2 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { motion } from "framer-motion";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }
+};
 
 export default function CourseDetail() {
   const params = useParams();
   const courseId = parseInt(params.id || "0");
   
   const { data: course, isLoading: isLoadingCourse } = useGetCourse(courseId, { query: { enabled: !!courseId } });
-  const { data: progress, isLoading: isLoadingProgress } = useGetCourseProgress(courseId, { query: { enabled: !!courseId } });
+  const { data: progress } = useGetCourseProgress(courseId, { query: { enabled: !!courseId, retry: false } });
 
-  if (isLoadingCourse || isLoadingProgress) {
+  if (isLoadingCourse) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
         <Skeleton className="h-8 w-32" />
@@ -30,24 +35,26 @@ export default function CourseDetail() {
     return <div className="text-center py-20 text-xl font-bold">Course not found</div>;
   }
 
-  // Determine the next unlocked lesson. 
-  // In a real app, backend determines `isUnlocked`. Here we derive it simply:
-  // Find the first module/lesson that is not completed.
+  const allLessons: { id: number; index: number }[] = [];
   let nextLessonId: number | null = null;
-  
   if (course.modules) {
+    let flatIndex = 0;
     for (const module of course.modules) {
-      for (const lesson of module.lessons) {
-        // Mocking completion status based on total completed lessons count for simplicity
-        // Ideally, progress endpoint returns an array of completed lesson IDs.
-        // If we don't have detailed lesson status, we just offer starting at module 1, lesson 1.
-        if (!nextLessonId) nextLessonId = lesson.id;
+      if (module.lessons) {
+        for (const lesson of module.lessons) {
+          allLessons.push({ id: lesson.id, index: flatIndex });
+          if (!nextLessonId) nextLessonId = lesson.id;
+          flatIndex++;
+        }
       }
     }
   }
 
+  const completedCount = progress?.completedLessons || 0;
+  const lessonIndexMap = new Map(allLessons.map(l => [l.id, l.index]));
+
   const LessonIcon = ({ type, isCompleted }: { type: string, isCompleted: boolean }) => {
-    if (isCompleted) return <CheckCircle2 className="w-5 h-5 text-success fill-success/20" />;
+    if (isCompleted) return <CheckCircle2 className="w-5 h-5 text-success" />;
     switch (type) {
       case 'theory': return <FileText className="w-5 h-5 text-blue-500" />;
       case 'quiz': return <HelpCircle className="w-5 h-5 text-purple-500" />;
@@ -58,128 +65,156 @@ export default function CourseDetail() {
 
   return (
     <div className="pb-24">
-      {/* Hero Header */}
-      <div className="bg-card border-b border-border pt-8 pb-12">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+        className="bg-card border-b border-border/50 pt-8 pb-12"
+      >
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <Link href="/courses" className="inline-flex items-center text-sm font-bold text-muted-foreground hover:text-primary transition-colors mb-6">
-            <ChevronLeft className="w-4 h-4 mr-1" /> Back to Courses
+          <Link href="/courses" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition-colors mb-6 group">
+            <ChevronLeft className="w-4 h-4 mr-1 group-hover:-translate-x-0.5 transition-transform" /> Back to Courses
           </Link>
           
-          <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
-            <div className={`w-32 h-32 rounded-3xl shrink-0 flex items-center justify-center border-4 border-background shadow-xl ${
-              course.language.toLowerCase() === 'python' ? 'bg-blue-500/10' : 
-              course.language.toLowerCase() === 'javascript' ? 'bg-yellow-500/10' : 
-              'bg-primary/10'
+          <motion.div 
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col md:flex-row gap-8 items-start md:items-center"
+          >
+            <div className={`w-28 h-28 rounded-3xl shrink-0 flex items-center justify-center shadow-lg ${
+              course.language.toLowerCase() === 'python' ? 'bg-gradient-to-br from-blue-500/15 to-cyan-500/10 shadow-blue-500/10' : 
+              course.language.toLowerCase() === 'javascript' ? 'bg-gradient-to-br from-yellow-500/15 to-orange-500/10 shadow-yellow-500/10' : 
+              'bg-gradient-to-br from-primary/15 to-primary/5 shadow-primary/10'
             }`}>
-              {course.imageUrl ? (
-                <img src={course.imageUrl} alt="" className="w-20 h-20 object-contain drop-shadow-md" />
-              ) : (
-                <span className="text-5xl drop-shadow-md">
-                  {course.language.toLowerCase() === 'python' ? '🐍' : '💻'}
-                </span>
-              )}
+              <span className="text-5xl drop-shadow-sm">
+                {course.language.toLowerCase() === 'python' ? '🐍' : 
+                 course.language.toLowerCase() === 'javascript' ? '⚡' : '💻'}
+              </span>
             </div>
             
             <div className="flex-1">
               <div className="flex flex-wrap gap-2 mb-3">
-                <Badge variant="secondary" className="font-bold">{course.language}</Badge>
-                <Badge variant="outline" className="font-bold">{course.difficulty}</Badge>
+                <Badge variant="secondary" className="font-semibold text-xs">{course.language}</Badge>
+                <Badge variant="outline" className="font-semibold text-xs capitalize">{course.difficulty}</Badge>
               </div>
-              <h1 className="text-4xl md:text-5xl font-display font-extrabold mb-4">{course.title}</h1>
-              <p className="text-lg text-muted-foreground">{course.description}</p>
+              <h1 className="text-3xl md:text-4xl font-display font-extrabold mb-3">{course.title}</h1>
+              <p className="text-base text-muted-foreground leading-relaxed">{course.description}</p>
             </div>
-          </div>
+          </motion.div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 bg-background rounded-2xl p-4 border border-border shadow-sm">
+          <motion.div 
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 bg-background rounded-2xl p-4 border border-border/50"
+          >
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg"><BookOpen className="w-5 h-5 text-primary" /></div>
-              <div><p className="text-sm font-bold">{course.totalLessons}</p><p className="text-xs text-muted-foreground uppercase">Lessons</p></div>
+              <div className="p-2.5 bg-primary/8 rounded-xl"><BookOpen className="w-5 h-5 text-primary" /></div>
+              <div><p className="text-sm font-bold">{course.totalLessons}</p><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Lessons</p></div>
             </div>
-            <div className="flex items-center gap-3 border-l border-border pl-4">
-              <div className="p-2 bg-blue-500/10 rounded-lg"><Clock className="w-5 h-5 text-blue-500" /></div>
-              <div><p className="text-sm font-bold">{course.estimatedHours}h</p><p className="text-xs text-muted-foreground uppercase">Estimated</p></div>
+            <div className="flex items-center gap-3 md:border-l md:border-border/50 md:pl-4">
+              <div className="p-2.5 bg-blue-500/8 rounded-xl"><Clock className="w-5 h-5 text-blue-500" /></div>
+              <div><p className="text-sm font-bold">{course.estimatedHours}h</p><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Estimated</p></div>
             </div>
-            <div className="flex items-center gap-3 border-l border-border pl-4">
-              <div className="p-2 bg-accent/10 rounded-lg"><Star className="w-5 h-5 text-accent fill-current" /></div>
-              <div><p className="text-sm font-bold text-accent">{course.xpReward}</p><p className="text-xs text-muted-foreground uppercase">Total XP</p></div>
+            <div className="flex items-center gap-3 md:border-l md:border-border/50 md:pl-4">
+              <div className="p-2.5 bg-accent/8 rounded-xl"><Star className="w-5 h-5 text-accent fill-accent" /></div>
+              <div><p className="text-sm font-bold text-accent">{course.xpReward}</p><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Total XP</p></div>
             </div>
-            <div className="flex items-center justify-end pl-4">
-               <Link href={`/lessons/${nextLessonId}`}>
-                <Button size="lg" className="rounded-xl font-bold shadow-lg shadow-primary/20 w-full md:w-auto hover:scale-105 transition-transform">
-                  {progress?.percentComplete && progress.percentComplete > 0 ? "Continue Course" : "Start Course"}
+            <div className="flex items-center justify-end md:pl-4">
+              {nextLessonId ? (
+                <Link href={`/lessons/${nextLessonId}`}>
+                  <Button className="rounded-xl font-semibold shadow-lg shadow-primary/15 hover:shadow-primary/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 w-full md:w-auto">
+                    {progress?.percentComplete && progress.percentComplete > 0 ? "Continue" : "Start Course"}
+                    <Play className="w-4 h-4 ml-1.5 fill-current" />
+                  </Button>
+                </Link>
+              ) : (
+                <Button disabled className="rounded-xl font-semibold w-full md:w-auto opacity-50">
+                  No lessons available
                 </Button>
-              </Link>
+              )}
             </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Progress & Syllabus */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-12">
-        
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-10">
         {progress && progress.percentComplete > 0 && (
-          <section>
-            <div className="flex justify-between font-bold mb-2">
-              <h2 className="text-xl font-display">Your Progress</h2>
-              <span className="text-primary">{progress.percentComplete}%</span>
+          <motion.section {...fadeUp}>
+            <div className="flex justify-between font-semibold mb-2.5 items-end">
+              <h2 className="text-lg font-display font-bold">Your Progress</h2>
+              <span className="text-primary text-sm">{progress.percentComplete}%</span>
             </div>
-            <Progress value={progress.percentComplete} className="h-4 rounded-full" indicatorClassName="bg-primary" />
-          </section>
+            <Progress value={progress.percentComplete} className="h-3 rounded-full bg-muted" indicatorClassName="bg-gradient-to-r from-primary to-[hsl(280,80%,60%)]" />
+          </motion.section>
         )}
 
-        <section>
-          <h2 className="text-2xl font-display font-bold mb-6">Course Syllabus</h2>
-          <Accordion type="multiple" defaultValue={course.modules?.map((_, i) => `item-${i}`)} className="space-y-4">
+        <motion.section 
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <h2 className="text-xl font-display font-bold mb-6">Course Syllabus</h2>
+          <Accordion type="multiple" defaultValue={course.modules?.map((_, i) => `item-${i}`)} className="space-y-3">
             {course.modules?.map((module, mIndex) => (
-              <AccordionItem key={module.id} value={`item-${mIndex}`} className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm px-2">
-                <AccordionTrigger className="hover:no-underline px-4 py-5 group">
+              <AccordionItem key={module.id} value={`item-${mIndex}`} className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm px-1 data-[state=open]:shadow-md transition-shadow duration-300">
+                <AccordionTrigger className="hover:no-underline px-5 py-5 group">
                   <div className="flex items-start text-left gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold font-display flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    <div className="w-10 h-10 rounded-xl bg-primary/8 text-primary font-bold font-display flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
                       {mIndex + 1}
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold font-display">{module.title}</h3>
-                      <p className="text-sm text-muted-foreground font-normal mt-1">{module.description}</p>
+                      <h3 className="text-base font-bold font-display">{module.title}</h3>
+                      <p className="text-sm text-muted-foreground font-normal mt-0.5">{module.description}</p>
                     </div>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4 pt-0">
-                  <div className="space-y-2 mt-4 ml-14">
+                <AccordionContent className="px-5 pb-5 pt-0">
+                  <div className="space-y-2 mt-3 ml-14">
                     {module.lessons?.map((lesson, lIndex) => {
-                      // Simplified completed logic for UI mockup
-                      const isCompleted = progress ? (mIndex * 10 + lIndex) < progress.completedLessons : false;
-                      const isLocked = !isCompleted && (mIndex * 10 + lIndex) > (progress?.completedLessons || 0);
+                      const flatIdx = lessonIndexMap.get(lesson.id) ?? 0;
+                      const isCompleted = progress ? flatIdx < completedCount : false;
+                      const isLocked = !isCompleted && flatIdx > completedCount;
 
                       return (
-                        <div key={lesson.id} className={`flex items-center justify-between p-4 rounded-xl border ${isCompleted ? 'bg-success/5 border-success/20' : isLocked ? 'bg-muted/30 border-transparent opacity-70' : 'bg-card border-border hover:border-primary/30'} transition-colors`}>
-                          <div className="flex items-center gap-4">
+                        <motion.div 
+                          key={lesson.id}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: lIndex * 0.05, duration: 0.3 }}
+                          className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${
+                            isCompleted ? 'bg-success/5 border-success/15' : 
+                            isLocked ? 'bg-muted/20 border-transparent opacity-60' : 
+                            'bg-background border-border/50 hover:border-primary/20 hover:shadow-sm'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3.5">
                             <LessonIcon type={lesson.type} isCompleted={isCompleted} />
                             <div>
-                              <p className={`font-bold ${isCompleted ? 'text-foreground' : isLocked ? 'text-muted-foreground' : 'text-foreground'}`}>
-                                {lesson.title}
-                              </p>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                              <p className="font-semibold text-sm">{lesson.title}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                                 <span className="capitalize">{lesson.type}</span>
-                                <span>•</span>
+                                <span className="opacity-30">·</span>
                                 <span>{lesson.estimatedMinutes} min</span>
-                                <span>•</span>
-                                <span className="flex items-center text-accent"><Star className="w-3 h-3 inline mr-0.5 fill-current"/> {lesson.xpReward}</span>
+                                <span className="opacity-30">·</span>
+                                <span className="flex items-center text-accent font-semibold"><Star className="w-3 h-3 mr-0.5 fill-current" /> {lesson.xpReward}</span>
                               </div>
                             </div>
                           </div>
                           
                           <div>
                             {isLocked ? (
-                              <Lock className="w-5 h-5 text-muted-foreground/50" />
+                              <Lock className="w-4 h-4 text-muted-foreground/40" />
                             ) : (
                               <Link href={`/lessons/${lesson.id}`}>
-                                <Button variant={isCompleted ? "outline" : "default"} size="sm" className="rounded-lg font-bold">
+                                <Button variant={isCompleted ? "outline" : "default"} size="sm" className="rounded-lg font-semibold text-xs h-8">
                                   {isCompleted ? "Review" : "Start"}
                                 </Button>
                               </Link>
                             )}
                           </div>
-                        </div>
+                        </motion.div>
                       );
                     })}
                   </div>
@@ -187,7 +222,7 @@ export default function CourseDetail() {
               </AccordionItem>
             ))}
           </Accordion>
-        </section>
+        </motion.section>
       </div>
     </div>
   );

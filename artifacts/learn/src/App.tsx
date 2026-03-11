@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,30 +24,26 @@ const queryClient = new QueryClient({
   },
 });
 
+function LayoutPage({ component: Component }: { component: React.ComponentType }) {
+  return (
+    <Layout>
+      <Component />
+    </Layout>
+  );
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
-      
-      {/* Lesson view is immersive, no standard layout */}
-      <Route path="/lessons/:id">
-        {() => <Lesson />}
-      </Route>
-
-      {/* Pages with standard layout */}
-      <Route path="/:rest*">
-        <Layout>
-          <Switch>
-            <Route path="/dashboard" component={Dashboard} />
-            <Route path="/courses" component={Courses} />
-            <Route path="/courses/:id" component={CourseDetail} />
-            <Route path="/profile" component={Profile} />
-            <Route path="/achievements" component={Achievements} />
-            <Route path="/leaderboard" component={Leaderboard} />
-            <Route component={NotFound} />
-          </Switch>
-        </Layout>
-      </Route>
+      <Route path="/lessons/:id" component={Lesson} />
+      <Route path="/dashboard">{() => <LayoutPage component={Dashboard} />}</Route>
+      <Route path="/courses/:id">{() => <LayoutPage component={CourseDetail} />}</Route>
+      <Route path="/courses">{() => <LayoutPage component={Courses} />}</Route>
+      <Route path="/profile">{() => <LayoutPage component={Profile} />}</Route>
+      <Route path="/achievements">{() => <LayoutPage component={Achievements} />}</Route>
+      <Route path="/leaderboard">{() => <LayoutPage component={Leaderboard} />}</Route>
+      <Route>{() => <LayoutPage component={NotFound} />}</Route>
     </Switch>
   );
 }
