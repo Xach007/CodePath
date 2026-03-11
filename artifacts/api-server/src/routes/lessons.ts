@@ -20,7 +20,7 @@ import {
 } from "@workspace/api-zod";
 import { authMiddleware, getAuthUserId } from "../lib/auth";
 import { awardXP, updateStreak, checkAndUnlockAchievements } from "../lib/gamification";
-import { runPythonCode } from "../lib/codeRunner";
+import { runCode } from "../lib/codeRunner";
 
 const router: IRouter = Router();
 
@@ -280,7 +280,7 @@ router.post("/lessons/:lessonId/submit-code", authMiddleware, async (req, res): 
     .where(eq(testCasesTable.challengeId, challenge.id))
     .orderBy(asc(testCasesTable.orderIndex));
 
-  const runResult = await runPythonCode(body.data.code, testCases.map(tc => ({
+  const runResult = await runCode(body.data.code, challenge.language || "python", testCases.map(tc => ({
     name: tc.name,
     input: tc.input,
     expectedOutput: tc.expectedOutput,

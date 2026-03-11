@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { motion, useMotionValue, useTransform, useSpring } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useLogin, useRegister, useGetMe } from "@workspace/api-client-react";
 import { setToken } from "@/lib/auth";
-import { Code2, Trophy, Zap, Terminal, ArrowRight, Sparkles, Play, Users, Star, BookOpen, Moon, Sun } from "lucide-react";
+import { Code2, Trophy, Zap, Terminal, ArrowRight, Sparkles, Play, Users, Star, BookOpen, Moon, Sun, Globe } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
   const { data: user, isLoading: isUserLoading } = useGetMe();
+  const { t, i18n } = useTranslation();
   
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -73,6 +75,11 @@ export default function Landing() {
     }
   };
 
+  const toggleLanguage = () => {
+    const newLang = i18n.language === "ru" ? "en" : "ru";
+    i18n.changeLanguage(newLang);
+  };
+
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -89,24 +96,24 @@ export default function Landing() {
   const features = [
     { 
       icon: Terminal, 
-      title: "Write Real Code", 
-      desc: "Built-in code editor with instant feedback. Write, run, and debug code right in your browser.",
+      title: t("landing.features.interactive"), 
+      desc: t("landing.features.interactiveDesc"),
       gradient: "from-blue-500/10 to-cyan-500/10",
       iconColor: "text-blue-500",
       border: "hover:border-blue-500/30"
     },
     { 
       icon: Trophy, 
-      title: "Gamified Progress", 
-      desc: "Earn XP, maintain streaks, unlock achievements, and compete on the leaderboard.",
+      title: t("landing.features.gamified"), 
+      desc: t("landing.features.gamifiedDesc"),
       gradient: "from-primary/10 to-purple-500/10",
       iconColor: "text-primary",
       border: "hover:border-primary/30"
     },
     { 
       icon: Sparkles, 
-      title: "Bite-sized Lessons", 
-      desc: "Learn in 5-minute lessons. Theory, quizzes, and coding challenges in every module.",
+      title: t("landing.features.multiLang"), 
+      desc: t("landing.features.multiLangDesc"),
       gradient: "from-accent/10 to-orange-500/10",
       iconColor: "text-accent",
       border: "hover:border-accent/30"
@@ -114,9 +121,9 @@ export default function Landing() {
   ];
 
   const stats = [
-    { value: "50+", label: "Lessons", icon: BookOpen },
+    { value: "50+", label: t("landing.stats.lessons"), icon: BookOpen },
     { value: "100%", label: "Free", icon: Star },
-    { value: "3", label: "Lesson Types", icon: Code2 },
+    { value: "5", label: t("landing.stats.courses"), icon: Code2 },
   ];
 
   return (
@@ -130,6 +137,14 @@ export default function Landing() {
             <span className="font-display font-bold text-lg tracking-tight">CodePath</span>
           </div>
           <div className="flex items-center gap-2">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={toggleLanguage}
+              className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-colors duration-300 flex items-center gap-1"
+            >
+              <Globe className="w-[18px] h-[18px]" />
+              <span className="text-xs font-bold uppercase">{i18n.language === "ru" ? "RU" : "EN"}</span>
+            </motion.button>
             <motion.button 
               whileTap={{ scale: 0.9, rotate: 15 }}
               onClick={() => setIsDark(!isDark)}
@@ -139,18 +154,18 @@ export default function Landing() {
             </motion.button>
             <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" className="rounded-xl font-medium hidden sm:inline-flex">Log in</Button>
+                <Button variant="ghost" className="rounded-xl font-medium hidden sm:inline-flex">{t("nav.login")}</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[420px] rounded-3xl p-8 border-border/50">
                 <DialogHeader className="space-y-2">
-                  <DialogTitle className="text-2xl font-display font-bold">Welcome back</DialogTitle>
+                  <DialogTitle className="text-2xl font-display font-bold">{t("auth.loginTitle")}</DialogTitle>
                   <DialogDescription className="text-muted-foreground">
-                    Enter your credentials to continue learning.
+                    {t("auth.loginSubtitle")}
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleLogin} className="space-y-5 mt-6">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-sm font-medium">Email</Label>
+                    <Label htmlFor="login-email" className="text-sm font-medium">{t("auth.email")}</Label>
                     <Input 
                       id="login-email" 
                       type="email" 
@@ -162,7 +177,7 @@ export default function Landing() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-sm font-medium">Password</Label>
+                    <Label htmlFor="login-password" className="text-sm font-medium">{t("auth.password")}</Label>
                     <Input 
                       id="login-password" 
                       type="password" 
@@ -176,25 +191,25 @@ export default function Landing() {
                     <p className="text-sm text-destructive font-medium bg-destructive/10 px-4 py-2.5 rounded-xl">Invalid credentials. Please try again.</p>
                   )}
                   <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold mt-2" disabled={loginMutation.isPending}>
-                    {loginMutation.isPending ? "Signing in..." : "Sign in"}
+                    {loginMutation.isPending ? "..." : t("auth.signIn")}
                   </Button>
                 </form>
               </DialogContent>
             </Dialog>
             <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
               <DialogTrigger asChild>
-                <Button className="rounded-xl shadow-lg shadow-primary/20 font-semibold">Get Started</Button>
+                <Button className="rounded-xl shadow-lg shadow-primary/20 font-semibold">{t("nav.getStarted")}</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[420px] rounded-3xl p-8 border-border/50">
                 <DialogHeader className="space-y-2">
-                  <DialogTitle className="text-2xl font-display font-bold">Create your account</DialogTitle>
+                  <DialogTitle className="text-2xl font-display font-bold">{t("auth.registerTitle")}</DialogTitle>
                   <DialogDescription className="text-muted-foreground">
-                    Start your coding journey today. It's free.
+                    {t("auth.registerSubtitle")}
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleRegister} className="space-y-5 mt-6">
                   <div className="space-y-2">
-                    <Label htmlFor="username" className="text-sm font-medium">Username</Label>
+                    <Label htmlFor="username" className="text-sm font-medium">{t("auth.username")}</Label>
                     <Input 
                       id="username" 
                       placeholder="johndoe" 
@@ -205,7 +220,7 @@ export default function Landing() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                    <Label htmlFor="email" className="text-sm font-medium">{t("auth.email")}</Label>
                     <Input 
                       id="email" 
                       type="email" 
@@ -217,7 +232,7 @@ export default function Landing() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                    <Label htmlFor="password" className="text-sm font-medium">{t("auth.password")}</Label>
                     <Input 
                       id="password" 
                       type="password" 
@@ -231,7 +246,7 @@ export default function Landing() {
                     <p className="text-sm text-destructive font-medium bg-destructive/10 px-4 py-2.5 rounded-xl">Failed to create account. Please try again.</p>
                   )}
                   <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold mt-2" disabled={registerMutation.isPending}>
-                    {registerMutation.isPending ? "Creating account..." : "Create account"}
+                    {registerMutation.isPending ? "..." : t("auth.signUp")}
                   </Button>
                 </form>
               </DialogContent>
@@ -257,17 +272,17 @@ export default function Landing() {
             >
               <motion.div variants={item} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/8 text-primary font-semibold text-sm mb-8 border border-primary/15">
                 <Sparkles className="w-4 h-4" />
-                <span>The new way to learn coding</span>
+                <span>{t("landing.badge")}</span>
               </motion.div>
               
               <motion.h1 variants={item} className="text-5xl sm:text-6xl lg:text-[4.25rem] font-display font-extrabold leading-[1.08] text-foreground mb-6">
-                Master code with{" "}
-                <span className="gradient-text">interactive</span>{" "}
-                lessons.
+                {t("landing.title1")}{" "}
+                <span className="gradient-text">{t("landing.titleHighlight")}</span>{" "}
+                {t("landing.title2")}
               </motion.h1>
               
               <motion.p variants={item} className="text-lg sm:text-xl text-muted-foreground mb-10 leading-relaxed max-w-lg">
-                Bite-sized theory, interactive quizzes, and real coding challenges. Build your streak, earn XP, and become a developer.
+                {t("landing.subtitle")}
               </motion.p>
               
               <motion.div variants={item} className="flex flex-col sm:flex-row gap-3">
@@ -276,7 +291,7 @@ export default function Landing() {
                   onClick={() => setIsRegisterOpen(true)}
                   className="rounded-2xl h-14 px-8 text-base font-bold shadow-xl shadow-primary/25 hover:shadow-primary/35 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
                 >
-                  Start Learning Free
+                  {t("landing.startFree")}
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
                 <Button 
@@ -285,7 +300,7 @@ export default function Landing() {
                   onClick={() => setIsLoginOpen(true)}
                   className="rounded-2xl h-14 px-8 text-base font-bold border-2 border-border hover:border-primary/30 hover:bg-primary/5 transition-all duration-300"
                 >
-                  I have an account
+                  {t("landing.haveAccount")}
                 </Button>
               </motion.div>
 
@@ -442,7 +457,7 @@ export default function Landing() {
               onClick={() => setIsRegisterOpen(true)}
               className="rounded-2xl h-14 px-10 text-base font-bold shadow-xl shadow-primary/25 hover:shadow-primary/35 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
             >
-              Create Free Account
+              {t("auth.signUp")}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </motion.div>

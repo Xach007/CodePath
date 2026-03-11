@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { motion } from "framer-motion";
+import "@/lib/i18n";
 
 import { Layout } from "@/components/layout";
 import { IntroAnimation } from "@/components/intro-animation";

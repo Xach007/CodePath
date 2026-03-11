@@ -25,15 +25,18 @@ import {
   Menu,
   Moon,
   Sun,
-  Sparkles
+  Sparkles,
+  Globe
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const queryClient = useQueryClient();
+  const { t, i18n } = useTranslation();
   const { data: user, isLoading: isLoadingUser } = useGetMe();
   const { data: gamification } = useGetGamificationProfile({
     query: { enabled: !!user }
@@ -68,11 +71,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
     window.location.href = "/";
   };
 
+  const toggleLanguage = () => {
+    const newLang = i18n.language === "ru" ? "en" : "ru";
+    i18n.changeLanguage(newLang);
+  };
+
   const navLinks = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/courses", label: "Courses", icon: BookOpen },
-    { href: "/achievements", label: "Achievements", icon: Trophy },
-    { href: "/leaderboard", label: "Leaderboard", icon: Medal },
+    { href: "/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
+    { href: "/courses", label: t("nav.courses"), icon: BookOpen },
+    { href: "/achievements", label: t("nav.achievements"), icon: Trophy },
+    { href: "/leaderboard", label: t("nav.leaderboard"), icon: Medal },
   ];
 
   return (
@@ -119,6 +127,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={toggleLanguage}
+              className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-colors duration-300 flex items-center gap-1"
+              title={i18n.language === "ru" ? "Switch to English" : "Переключить на русский"}
+            >
+              <Globe className="w-[18px] h-[18px]" />
+              <span className="text-xs font-bold uppercase">{i18n.language === "ru" ? "RU" : "EN"}</span>
+            </motion.button>
             <motion.button 
               whileTap={{ scale: 0.9, rotate: 15 }}
               onClick={() => setIsDark(!isDark)}
@@ -184,13 +201,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <Link href="/profile">
                       <DropdownMenuItem className="cursor-pointer rounded-xl py-2.5">
                         <User className="mr-2.5 h-4 w-4" />
-                        <span>Profile</span>
+                        <span>{t("nav.profile")}</span>
                       </DropdownMenuItem>
                     </Link>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive rounded-xl py-2.5" onClick={handleLogout}>
                       <LogOut className="mr-2.5 h-4 w-4" />
-                      <span>Log out</span>
+                      <span>{t("nav.logout")}</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

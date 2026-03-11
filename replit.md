@@ -2,7 +2,7 @@
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. CodePath — a Duolingo/Mimo-style interactive programming learning platform with courses, quizzes, coding challenges, XP, streaks, achievements, leaderboard, and a gamified dark-mode-capable UI.
+pnpm workspace monorepo using TypeScript. CodePath — a Duolingo/Mimo-style interactive programming learning platform with courses, quizzes, coding challenges, XP, streaks, achievements, leaderboard, and a gamified dark-mode-capable UI. Supports English and Russian (i18n).
 
 ## Stack
 
@@ -16,9 +16,10 @@ pnpm workspace monorepo using TypeScript. CodePath — a Duolingo/Mimo-style int
 - **Validation**: Zod (`zod/v4`), `drizzle-zod` — date fields use `zod.coerce.date()` to accept both Date objects and ISO strings
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
-- **Code Editor**: Monaco Editor (`@monaco-editor/react`)
+- **Code Editor**: Monaco Editor (`@monaco-editor/react`) with enhanced autocomplete, bracket matching, parameter hints, and inline suggestions
 - **Markdown**: react-markdown + remark-gfm
 - **Animations**: framer-motion, canvas-confetti
+- **i18n**: react-i18next + i18next + i18next-browser-languagedetector (EN/RU)
 
 ## Structure
 
@@ -46,9 +47,9 @@ artifacts-monorepo/
 React 19 + Vite app mounted at `/`. Uses wouter for routing, TanStack React Query for data fetching, shadcn/ui for components.
 
 ### Pages
-- **Landing** (`/`) — Hero section, login/register modals, features section
+- **Landing** (`/`) — Hero section with i18n, login/register modals, features section, language switcher
 - **Dashboard** (`/dashboard`) — Welcome banner, active course progress, stats grid, level card, recent achievements
-- **Courses** (`/courses`) — Course library grid with animated cards
+- **Courses** (`/courses`) — Course library grid with animated cards (5 courses: Python, JavaScript, HTML, CSS, SQL)
 - **Course Detail** (`/courses/:id`) — Course hero, stats, syllabus with accordion modules listing all lessons
 - **Lesson** (`/lessons/:id`) — Immersive lesson view (no standard layout):
   - Theory: Markdown content with lesson type badge and "Complete & Continue" button
@@ -62,9 +63,11 @@ React 19 + Vite app mounted at `/`. Uses wouter for routing, TanStack React Quer
 - **Admin** (`/admin`) — Admin login + dashboard with sidebar tabs: Dashboard stats, Courses CRUD (with modules/lessons), Users management, Achievements CRUD
 
 ### Key Features
+- **i18n**: English/Russian language switching via Globe button in navbar. Uses react-i18next with localStorage persistence. Translation files in `src/locales/en.json` and `src/locales/ru.json`.
 - **Dark mode**: Toggle in navbar, persists to localStorage, applies `dark` class to `<html>`
 - **Auth**: JWT stored in localStorage, injected via global fetch interceptor in `lib/auth.ts`; auto-logout on 401
 - **Gamification UI**: XP and streak badges in navbar, confetti on lesson completion, success overlay with XP and achievements
+- **Monaco Editor**: Enhanced with autocomplete, parameter hints, bracket pair colorization, inline suggestions, tab completion, auto-closing brackets/quotes, format on paste, indentation guides
 - **Custom CSS**: Inter + Plus Jakarta Sans fonts, indigo/purple/amber/green palette with dark mode variants, glassmorphism navbar, gradient text utilities, glow effects, shimmer/float/fadeUp animations, card-hover transitions
 - **Progress component**: Extended with `indicatorClassName` prop for custom indicator colors
 - **Routing**: Flat route structure in App.tsx (wouter nested Switch caused blank pages); Layout wraps interior pages via LayoutPage wrapper component; admin route uses render function syntax `{() => <AdminPage />}` instead of `component` prop for wouter v3 compatibility
@@ -98,8 +101,13 @@ Express 5 API server. All routes under `/api`.
 - `authMiddleware` validates token and attaches userId to request
 
 ### Code Execution
-- Python code execution via `child_process.exec` with 5-second timeout
-- Located in `src/lib/codeRunner.ts`
+- Multi-language code runner (`src/lib/codeRunner.ts`) supporting:
+  - **Python**: Executed via `python3` child process with 5-second timeout, stdin/stdout capture wrapper
+  - **JavaScript**: Executed via `node` child process with 5-second timeout, readline/prompt polyfill wrapper
+  - **HTML/CSS**: Pattern/token matching validation (checks for required tags/properties)
+  - **SQL**: Keyword/pattern matching validation (checks for required SQL constructs)
+- Uses `execFile` (not `exec`) for safer process spawning without shell interpolation
+- Unified `runCode(code, language, testCases)` dispatcher function
 
 ### Gamification
 - XP awarded per lesson completion (configurable per lesson)
@@ -118,7 +126,7 @@ Tables in `lib/db/src/schema/`:
 - `lessons` — id, moduleId, title, type (theory/quiz/challenge), content, orderIndex, xpReward, estimatedMinutes
 - `quiz_questions` — id, lessonId, question, explanation, orderIndex
 - `quiz_options` — id, questionId, text, isCorrect
-- `coding_challenges` — id, lessonId, instructions, starterCode, solutionCode, language, hints
+- `coding_challenges` — id, lessonId, instructions, starterCode, language, hints
 - `test_cases` — id, challengeId, name, input, expectedOutput, isHidden
 - `user_lesson_progress` — userId, lessonId, completedAt, score
 - `user_course_enrollments` — userId, courseId, startedAt, completedAt
@@ -127,9 +135,17 @@ Tables in `lib/db/src/schema/`:
 
 ## Seed Data
 
-Run: `pnpm --filter @workspace/scripts run seed`
+Run: `npx tsx scripts/src/seed.ts`
 
-Seeds 2 courses (Python Fundamentals, Web Development Basics), 3 modules, 9 lessons (theory + quiz + challenge each), and 11 achievements.
+Seeds 5 courses with 81 total lessons:
+- **Python Fundamentals** (18 lessons, 6 modules) — variables, control flow, loops, functions, data structures
+- **JavaScript Essentials** (18 lessons, 6 modules) — basics, functions/arrays, objects, loops, strings, modern JS
+- **HTML Fundamentals** (15 lessons, 5 modules) — basics, links/images, forms, semantic HTML, tables
+- **CSS Styling Mastery** (15 lessons, 5 modules) — basics, box model, flexbox, grid, responsive design
+- **SQL for Beginners** (15 lessons, 5 modules) — basics, aggregation, JOINs, DML, advanced queries
+
+Each module has 3 lessons: Theory -> Quiz (3 questions) -> Coding Challenge with tests.
+Also seeds 11 achievements (first lesson, streak milestones, XP milestones, etc.).
 
 ## TypeScript & Composite Projects
 
@@ -150,4 +166,5 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - Dev API: `pnpm --filter @workspace/api-server run dev`
 - Codegen: `pnpm --filter @workspace/api-spec run codegen`
 - DB push: `pnpm --filter @workspace/db run push`
-- Seed: `pnpm --filter @workspace/scripts run seed`
+- Seed: `npx tsx scripts/src/seed.ts`
+- Build frontend: `pnpm --filter @workspace/learn run build`
