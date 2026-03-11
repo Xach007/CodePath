@@ -54,7 +54,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
-      <Route path="/admin" component={AdminPage} />
+      <Route path="/admin">{() => <AdminPage />}</Route>
       <Route path="/lessons/:id" component={Lesson} />
       <Route path="/dashboard">{() => <LayoutPage component={Dashboard} />}</Route>
       <Route path="/courses/:id">{() => <LayoutPage component={CourseDetail} />}</Route>
@@ -71,7 +71,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "") || undefined}>
           <Router />
         </WouterRouter>
         <Toaster richColors position="top-center" />
