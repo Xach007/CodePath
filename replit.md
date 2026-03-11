@@ -52,7 +52,7 @@ React 19 + Vite app mounted at `/`. Uses wouter for routing, TanStack React Quer
 - **Course Detail** (`/courses/:id`) — Course hero, stats, syllabus with accordion modules listing all lessons
 - **Lesson** (`/lessons/:id`) — Immersive lesson view (no standard layout):
   - Theory: Markdown content with lesson type badge and "Complete & Continue" button
-  - Quiz: Single-question MCQ with answer feedback, explanations, and ring highlights
+  - Quiz: Multi-question MCQ with step-by-step navigation ("Question 1 of 3"), progress dots, answer locking after submit, per-question feedback, and collective pass/fail with retry
   - Challenge: Desktop split-pane (instructions + Monaco editor + test results); Mobile tabbed layout (Instructions/Code/Results tabs) with auto-switch to results on failure
   - Error output display: Runtime errors, stdout output, and per-test expected/actual comparison
   - Test result counter badge (passed/total) in the results panel header
@@ -67,7 +67,8 @@ React 19 + Vite app mounted at `/`. Uses wouter for routing, TanStack React Quer
 - **Gamification UI**: XP and streak badges in navbar, confetti on lesson completion, success overlay with XP and achievements
 - **Custom CSS**: Inter + Plus Jakarta Sans fonts, indigo/purple/amber/green palette with dark mode variants, glassmorphism navbar, gradient text utilities, glow effects, shimmer/float/fadeUp animations, card-hover transitions
 - **Progress component**: Extended with `indicatorClassName` prop for custom indicator colors
-- **Routing**: Flat route structure in App.tsx (wouter nested Switch caused blank pages); Layout wraps interior pages via LayoutPage wrapper component
+- **Routing**: Flat route structure in App.tsx (wouter nested Switch caused blank pages); Layout wraps interior pages via LayoutPage wrapper component; admin route uses render function syntax `{() => <AdminPage />}` instead of `component` prop for wouter v3 compatibility
+- **Production build**: Replit proxy serves from production build (`dist/public`), not the Vite dev server. After code changes, run `pnpm --filter @workspace/learn run build` to update the production build (Vite config uses sensible defaults for PORT and BASE_PATH)
 - **Page transitions**: Smooth fade-up animation via `PageWrapper` (motion.div) applied to layout-wrapped pages
 - **Dashboard redirect**: Uses `useEffect` to avoid React "setState during render" warning
 

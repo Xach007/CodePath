@@ -238,7 +238,7 @@ export default function Lesson() {
     const isCurrentCorrect = currentResult?.correct;
     const correctOptionId = currentResult?.correctOptionId;
 
-    const quizProgressValue = ((currentQuestionIndex + (isSubmitted ? 1 : 0)) / totalQuestions) * 100;
+    const hasAnsweredCurrent = collectedAnswers.some((a: any) => a.questionId === question.id);
 
     return (
       <div className="max-w-2xl mx-auto py-12 px-4 flex flex-col min-h-[calc(100vh-4rem)]">
@@ -302,8 +302,8 @@ export default function Lesson() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: optIdx * 0.06, duration: 0.4 }}
                   className={`w-full border-2 text-left p-5 rounded-2xl transition-all duration-300 flex items-center gap-4 ${styles[variant]}`}
-                  onClick={() => !(isSubmitted && isFinalSubmitted) && setSelectedOption(opt.id)}
-                  disabled={isSubmitted && isFinalSubmitted}
+                  onClick={() => !(isSubmitted || hasAnsweredCurrent) && setSelectedOption(opt.id)}
+                  disabled={isSubmitted || hasAnsweredCurrent}
                 >
                   <div className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center shrink-0 text-sm font-bold transition-colors ${
                     variant === "selected" || variant === "correct" ? "border-current bg-current/10" : "border-border"
