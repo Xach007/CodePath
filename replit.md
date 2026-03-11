@@ -13,7 +13,7 @@ pnpm workspace monorepo using TypeScript. CodePath — a Duolingo/Mimo-style int
 - **Frontend**: React 19 + Vite 7 + TailwindCSS v4 + shadcn/ui + Framer Motion
 - **API framework**: Express 5
 - **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
+- **Validation**: Zod (`zod/v4`), `drizzle-zod` — date fields use `zod.coerce.date()` to accept both Date objects and ISO strings
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 - **Code Editor**: Monaco Editor (`@monaco-editor/react`)
@@ -51,9 +51,11 @@ React 19 + Vite app mounted at `/`. Uses wouter for routing, TanStack React Quer
 - **Courses** (`/courses`) — Course library grid with animated cards
 - **Course Detail** (`/courses/:id`) — Course hero, stats, syllabus with accordion modules listing all lessons
 - **Lesson** (`/lessons/:id`) — Immersive lesson view (no standard layout):
-  - Theory: Markdown content with "Complete & Continue" button
-  - Quiz: Single-question MCQ with answer feedback and explanations
-  - Challenge: Split-pane with instructions + Monaco code editor, test results panel
+  - Theory: Markdown content with lesson type badge and "Complete & Continue" button
+  - Quiz: Single-question MCQ with answer feedback, explanations, and ring highlights
+  - Challenge: Desktop split-pane (instructions + Monaco editor + test results); Mobile tabbed layout (Instructions/Code/Results tabs) with auto-switch to results on failure
+  - Error output display: Runtime errors, stdout output, and per-test expected/actual comparison
+  - Test result counter badge (passed/total) in the results panel header
 - **Profile** (`/profile`) — User stats, level progress, course progress
 - **Achievements** (`/achievements`) — Achievement grid (locked/unlocked)
 - **Leaderboard** (`/leaderboard`) — Top users by XP
@@ -66,6 +68,8 @@ React 19 + Vite app mounted at `/`. Uses wouter for routing, TanStack React Quer
 - **Custom CSS**: Inter + Plus Jakarta Sans fonts, indigo/purple/amber/green palette with dark mode variants, glassmorphism navbar, gradient text utilities, glow effects, shimmer/float/fadeUp animations, card-hover transitions
 - **Progress component**: Extended with `indicatorClassName` prop for custom indicator colors
 - **Routing**: Flat route structure in App.tsx (wouter nested Switch caused blank pages); Layout wraps interior pages via LayoutPage wrapper component
+- **Page transitions**: Smooth fade-up animation via `PageWrapper` (motion.div) applied to layout-wrapped pages
+- **Dashboard redirect**: Uses `useEffect` to avoid React "setState during render" warning
 
 ## Backend (`artifacts/api-server`)
 

@@ -39,7 +39,7 @@ export const LoginResponse = zod.object({
     email: zod.string(),
     displayName: zod.string().nullish(),
     avatarUrl: zod.string().nullish(),
-    createdAt: zod.date(),
+    createdAt: zod.coerce.date(),
   }),
   token: zod.string(),
 });
@@ -53,7 +53,7 @@ export const GetMeResponse = zod.object({
   email: zod.string(),
   displayName: zod.string().nullish(),
   avatarUrl: zod.string().nullish(),
-  createdAt: zod.date(),
+  createdAt: zod.coerce.date(),
 });
 
 /**
@@ -70,7 +70,7 @@ export const ListCoursesResponseItem = zod.object({
   estimatedHours: zod.number(),
   xpReward: zod.number(),
   isPublished: zod.boolean(),
-  createdAt: zod.date(),
+  createdAt: zod.coerce.date(),
 });
 export const ListCoursesResponse = zod.array(ListCoursesResponseItem);
 
@@ -92,7 +92,7 @@ export const GetCourseResponse = zod.object({
   estimatedHours: zod.number(),
   xpReward: zod.number(),
   isPublished: zod.boolean(),
-  createdAt: zod.date(),
+  createdAt: zod.coerce.date(),
   modules: zod.array(
     zod.object({
       id: zod.number(),
@@ -209,7 +209,7 @@ export const CompleteLessonResponse = zod.object({
       description: zod.string(),
       icon: zod.string(),
       xpReward: zod.number(),
-      unlockedAt: zod.date().nullish(),
+      unlockedAt: zod.coerce.date().nullish(),
     }),
   ),
   streakUpdated: zod.boolean(),
@@ -254,7 +254,7 @@ export const SubmitQuizResponse = zod.object({
       description: zod.string(),
       icon: zod.string(),
       xpReward: zod.number(),
-      unlockedAt: zod.date().nullish(),
+      unlockedAt: zod.coerce.date().nullish(),
     }),
   ),
 });
@@ -293,7 +293,7 @@ export const SubmitCodeResponse = zod.object({
       description: zod.string(),
       icon: zod.string(),
       xpReward: zod.number(),
-      unlockedAt: zod.date().nullish(),
+      unlockedAt: zod.coerce.date().nullish(),
     }),
   ),
 });
@@ -318,8 +318,8 @@ export const GetUserProgressResponse = zod.object({
       totalLessons: zod.number(),
       percentComplete: zod.number(),
       xpEarned: zod.number(),
-      startedAt: zod.date().nullish(),
-      completedAt: zod.date().nullish(),
+      startedAt: zod.coerce.date().nullish(),
+      completedAt: zod.coerce.date().nullish(),
     }),
   ),
 });
@@ -338,8 +338,8 @@ export const GetCourseProgressResponse = zod.object({
   totalLessons: zod.number(),
   percentComplete: zod.number(),
   xpEarned: zod.number(),
-  startedAt: zod.date().nullish(),
-  completedAt: zod.date().nullish(),
+  startedAt: zod.coerce.date().nullish(),
+  completedAt: zod.coerce.date().nullish(),
 });
 
 /**
@@ -353,7 +353,7 @@ export const GetGamificationProfileResponse = zod.object({
   xpForCurrentLevel: zod.number(),
   currentStreak: zod.number(),
   longestStreak: zod.number(),
-  lastActivityDate: zod.date().nullish(),
+  lastActivityDate: zod.coerce.date().nullish(),
   achievements: zod.array(
     zod.object({
       id: zod.number(),
@@ -362,7 +362,7 @@ export const GetGamificationProfileResponse = zod.object({
       description: zod.string(),
       icon: zod.string(),
       xpReward: zod.number(),
-      unlockedAt: zod.date().nullish(),
+      unlockedAt: zod.coerce.date().nullish(),
     }),
   ),
   dailyGoalMinutes: zod.number(),
@@ -379,7 +379,7 @@ export const ListAchievementsResponseItem = zod.object({
   description: zod.string(),
   icon: zod.string(),
   xpReward: zod.number(),
-  unlockedAt: zod.date().nullish(),
+  unlockedAt: zod.coerce.date().nullish(),
 });
 export const ListAchievementsResponse = zod.array(ListAchievementsResponseItem);
 

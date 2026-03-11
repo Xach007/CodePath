@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { 
   useGetMe, 
@@ -35,8 +36,13 @@ export default function Dashboard() {
     query: { enabled: !!user }
   });
 
+  useEffect(() => {
+    if (!user && !isLoadingUser) {
+      setLocation("/");
+    }
+  }, [user, isLoadingUser, setLocation]);
+
   if (!user && !isLoadingUser) {
-    setLocation("/");
     return null;
   }
 

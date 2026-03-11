@@ -2,6 +2,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { motion } from "framer-motion";
 
 import { Layout } from "@/components/layout";
 import Landing from "@/pages/landing";
@@ -25,10 +26,26 @@ const queryClient = new QueryClient({
   },
 });
 
+const pageTransition = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] },
+};
+
+function PageWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div {...pageTransition}>
+      {children}
+    </motion.div>
+  );
+}
+
 function LayoutPage({ component: Component }: { component: React.ComponentType }) {
   return (
     <Layout>
-      <Component />
+      <PageWrapper>
+        <Component />
+      </PageWrapper>
     </Layout>
   );
 }

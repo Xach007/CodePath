@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { X, Play, CheckCircle2, XCircle, ArrowRight, Lightbulb, Trophy, Star, RotateCcw } from "lucide-react";
+import { X, Play, CheckCircle2, XCircle, ArrowRight, Lightbulb, Trophy, Star, RotateCcw, Terminal, Code2, FileText, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Lesson() {
@@ -38,6 +38,7 @@ export default function Lesson() {
   const [code, setCode] = useState<string>("");
   const [codeResult, setCodeResult] = useState<any>(null);
   const [showHints, setShowHints] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'instructions' | 'editor' | 'results'>('editor');
 
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [rewardData, setRewardData] = useState<{xp: number, achievements: any[]}>({xp: 0, achievements: []});
@@ -57,6 +58,7 @@ export default function Lesson() {
     setCodeResult(null);
     setShowHints(false);
     setShowSuccessOverlay(false);
+    setMobileTab('editor');
     if (lesson?.codingChallenge?.starterCode) {
       setCode(lesson.codingChallenge.starterCode);
     }
@@ -65,10 +67,19 @@ export default function Lesson() {
   if (isLoading || !lesson) {
     return (
       <div className="h-screen flex flex-col bg-background">
-        <div className="h-16 border-b border-border/50 flex items-center px-6">
-          <Skeleton className="h-2 w-full max-w-md rounded-full" />
+        <div className="h-16 border-b border-border/50 flex items-center px-6 gap-4">
+          <Skeleton className="h-8 w-8 rounded-xl" />
+          <Skeleton className="h-2 flex-1 max-w-md rounded-full" />
         </div>
-        <div className="flex-1 p-8"><Skeleton className="h-full w-full rounded-3xl" /></div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto animate-pulse">
+              <Code2 className="w-8 h-8 text-primary" />
+            </div>
+            <Skeleton className="h-6 w-48 mx-auto rounded-lg" />
+            <Skeleton className="h-4 w-32 mx-auto rounded-lg" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -126,7 +137,8 @@ export default function Lesson() {
       if (res.passed) {
         handleSuccess(res.xpEarned, res.newAchievements);
       } else {
-        toast.error("Some tests failed. Keep trying!");
+        setMobileTab('results');
+        toast.error("Some tests failed. Check the results and try again!");
       }
     } catch (err) {
       toast.error("Execution error");
@@ -141,6 +153,8 @@ export default function Lesson() {
     }
   };
 
+  const progressValue = lesson.isCompleted ? 100 : 0;
+
   const renderTheory = () => (
     <div className="max-w-3xl mx-auto py-12 px-4 md:px-8 pb-32">
       <motion.div
@@ -148,8 +162,16 @@ export default function Lesson() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
-        <h1 className="text-3xl md:text-4xl font-display font-bold mb-8">{lesson.title}</h1>
-        <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-display prose-code:text-primary prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border/50">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <FileText className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Theory Lesson</p>
+            <h1 className="text-2xl md:text-3xl font-display font-bold">{lesson.title}</h1>
+          </div>
+        </div>
+        <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-display prose-code:text-primary prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border/50 prose-pre:rounded-xl">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {lesson.content || ""}
           </ReactMarkdown>
@@ -172,6 +194,7 @@ export default function Lesson() {
   const renderQuiz = () => {
     const question = lesson.quizQuestions?.[0];
     if (!question) return null;
+    const isSubmitted = quizState === 'submitted';
     const isCorrect = quizResult?.results?.[0]?.correct;
 
     return (
@@ -182,12 +205,19 @@ export default function Lesson() {
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="flex-1"
         >
-          <h2 className="text-2xl md:text-3xl font-display font-bold mb-8">{question.question}</h2>
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+              <span className="text-lg">❓</span>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Quiz</p>
+              <h2 className="text-xl md:text-2xl font-display font-bold">{question.question}</h2>
+            </div>
+          </div>
           
           <div className="space-y-3">
-            {question.options.map((opt, optIdx) => {
+            {question.options.map((opt: any, optIdx: number) => {
               const isSelected = selectedOption === opt.id;
-              const isSubmitted = quizState === 'submitted';
               const correctOptionId = quizResult?.results?.[0]?.correctOptionId;
               
               let variant = "default";
@@ -199,8 +229,8 @@ export default function Lesson() {
               const styles: Record<string, string> = {
                 default: "border-border/50 bg-card hover:border-primary/30 hover:bg-primary/[0.03]",
                 selected: "border-primary bg-primary/8 ring-2 ring-primary/20",
-                correct: "border-success bg-success/8",
-                incorrect: "border-destructive bg-destructive/8",
+                correct: "border-success bg-success/8 ring-2 ring-success/20",
+                incorrect: "border-destructive bg-destructive/8 ring-2 ring-destructive/20",
                 dimmed: "border-border/30 opacity-50",
               };
 
@@ -271,126 +301,295 @@ export default function Lesson() {
     );
   };
 
+  const renderTestResults = () => (
+    <div className="space-y-2">
+      {codeResult?.errorMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-3 rounded-xl border border-destructive/20 bg-destructive/5 mb-3"
+        >
+          <div className="flex items-center gap-2 text-destructive text-xs font-bold mb-1">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Runtime Error
+          </div>
+          <pre className="text-xs font-mono text-destructive/80 whitespace-pre-wrap break-all">{codeResult.errorMessage}</pre>
+        </motion.div>
+      )}
+      {codeResult?.output && !codeResult?.errorMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-3 rounded-xl border border-border/30 bg-muted/30 mb-3"
+        >
+          <div className="flex items-center gap-2 text-muted-foreground text-xs font-bold mb-1">
+            <Terminal className="w-3.5 h-3.5" />
+            Output
+          </div>
+          <pre className="text-xs font-mono text-foreground/80 whitespace-pre-wrap">{codeResult.output}</pre>
+        </motion.div>
+      )}
+      {codeResult?.testResults?.map((t: any, i: number) => (
+        <motion.div 
+          key={i}
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: i * 0.05 }}
+          className={`p-3 rounded-xl border flex items-start gap-2.5 ${
+            t.passed ? 'bg-success/5 border-success/15' : 'bg-destructive/5 border-destructive/15'
+          }`}
+        >
+          {t.passed ? <CheckCircle2 className="w-4 h-4 text-success shrink-0 mt-0.5" /> : <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />}
+          <div className="text-xs flex-1 min-w-0">
+            <p className="font-semibold">{t.name}</p>
+            {!t.passed && (
+              <div className="mt-1.5 font-mono bg-background/50 p-2 rounded-lg text-[11px] space-y-0.5">
+                <div><span className="text-muted-foreground">Expected:</span> <span className="text-success">{t.expected}</span></div>
+                <div><span className="text-muted-foreground">Got:</span> <span className="text-destructive">{t.actual || "(no output)"}</span></div>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+
   const renderChallenge = () => {
     const chal = lesson.codingChallenge;
     if (!chal) return null;
 
+    const passedCount = codeResult?.testResults?.filter((t: any) => t.passed).length || 0;
+    const totalTests = codeResult?.testResults?.length || 0;
+
     return (
-      <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)] bg-background">
-        <div className="w-full md:w-[380px] xl:w-[420px] border-r border-border/50 flex flex-col bg-card">
-          <div className="p-6 flex-1 overflow-y-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <h2 className="text-xl font-display font-bold mb-4">{lesson.title}</h2>
-              <div className="prose prose-sm dark:prose-invert prose-headings:font-display">
-                <ReactMarkdown>{chal.instructions}</ReactMarkdown>
-              </div>
-              
-              {chal.hints && chal.hints.length > 0 && (
-                <div className="mt-6">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setShowHints(!showHints)} 
-                    className="rounded-xl text-xs font-semibold border-accent/30 text-accent bg-accent/5 hover:bg-accent/10"
-                  >
-                    <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> {showHints ? "Hide Hints" : "Show Hints"}
-                  </Button>
-                  <AnimatePresence>
-                    {showHints && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="mt-3 space-y-2 overflow-hidden"
-                      >
-                        {chal.hints.map((hint, i) => (
-                          <div key={i} className="p-3 bg-accent/5 border border-accent/10 rounded-xl text-sm">
-                            <span className="font-semibold text-accent text-xs">Hint {i+1}:</span>{" "}
-                            <span className="text-foreground/80">{hint}</span>
-                          </div>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+      <>
+        {/* Desktop layout */}
+        <div className="hidden md:flex flex-row h-[calc(100vh-4rem)] bg-background">
+          <div className="w-[380px] xl:w-[420px] border-r border-border/50 flex flex-col bg-card">
+            <div className="p-6 flex-1 overflow-y-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                    <Code2 className="w-4 h-4 text-success" />
+                  </div>
+                  <h2 className="text-lg font-display font-bold">{lesson.title}</h2>
                 </div>
-              )}
-            </motion.div>
-          </div>
-          
-          <div className="h-[35%] border-t border-border/50 bg-muted/20 p-4 overflow-y-auto">
-            <h3 className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wider mb-3">Test Results</h3>
-            {!codeResult ? (
-              <p className="text-sm text-muted-foreground/60 italic">Run your code to see results.</p>
-            ) : (
-              <div className="space-y-2">
-                {codeResult.testResults.map((t: any, i: number) => (
-                  <motion.div 
-                    key={i}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className={`p-3 rounded-xl border flex items-start gap-2.5 ${
-                      t.passed ? 'bg-success/5 border-success/15' : 'bg-destructive/5 border-destructive/15'
-                    }`}
-                  >
-                    {t.passed ? <CheckCircle2 className="w-4 h-4 text-success shrink-0 mt-0.5" /> : <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />}
-                    <div className="text-xs">
-                      <p className="font-semibold">{t.name}</p>
-                      {!t.passed && (
-                        <div className="mt-1.5 font-mono bg-background/50 p-2 rounded-lg text-[11px]">
-                          <span className="text-muted-foreground">Expected:</span> {t.expected}<br/>
-                          <span className="text-destructive">Got:</span> {t.actual}
-                        </div>
+                <div className="prose prose-sm dark:prose-invert prose-headings:font-display prose-pre:rounded-xl">
+                  <ReactMarkdown>{chal.instructions}</ReactMarkdown>
+                </div>
+                
+                {chal.hints && chal.hints.length > 0 && (
+                  <div className="mt-6">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setShowHints(!showHints)} 
+                      className="rounded-xl text-xs font-semibold border-accent/30 text-accent bg-accent/5 hover:bg-accent/10"
+                    >
+                      <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> {showHints ? "Hide Hints" : "Show Hints"}
+                    </Button>
+                    <AnimatePresence>
+                      {showHints && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mt-3 space-y-2 overflow-hidden"
+                        >
+                          {chal.hints.map((hint: string, i: number) => (
+                            <div key={i} className="p-3 bg-accent/5 border border-accent/10 rounded-xl text-sm">
+                              <span className="font-semibold text-accent text-xs">Hint {i+1}:</span>{" "}
+                              <span className="text-foreground/80">{hint}</span>
+                            </div>
+                          ))}
+                        </motion.div>
                       )}
-                    </div>
-                  </motion.div>
-                ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </motion.div>
+            </div>
+            
+            <div className="h-[35%] border-t border-border/50 bg-muted/20 p-4 overflow-y-auto">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wider">Test Results</h3>
+                {codeResult && (
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                    codeResult.passed ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
+                  }`}>
+                    {passedCount}/{totalTests} passed
+                  </span>
+                )}
               </div>
-            )}
+              {!codeResult ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <Terminal className="w-8 h-8 text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground/60">Run your code to see results</p>
+                </div>
+              ) : renderTestResults()}
+            </div>
+          </div>
+
+          <div className="flex-1 flex flex-col">
+            <div className="flex-1 min-h-0">
+              <Editor
+                height="100%"
+                language={chal.language.toLowerCase()}
+                theme={isDark ? "vs-dark" : "vs"}
+                value={code}
+                onChange={(val) => setCode(val || "")}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 15,
+                  fontFamily: '"JetBrains Mono", "Fira Code", Menlo, Monaco, monospace',
+                  fontLigatures: true,
+                  padding: { top: 20, bottom: 20 },
+                  scrollBeyondLastLine: false,
+                  smoothScrolling: true,
+                  cursorBlinking: "smooth",
+                  cursorSmoothCaretAnimation: "on",
+                  renderLineHighlight: "gutter",
+                  lineNumbersMinChars: 3,
+                  folding: true,
+                  bracketPairColorization: { enabled: true },
+                  automaticLayout: true,
+                  suggestOnTriggerCharacters: true,
+                  quickSuggestions: true,
+                  wordBasedSuggestions: "currentDocument",
+                }}
+              />
+            </div>
+            <div className="h-14 border-t border-border/50 bg-card flex items-center justify-between px-5">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setCode(chal.starterCode)} 
+                className="text-muted-foreground text-xs font-semibold rounded-lg"
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                Reset Code
+              </Button>
+              <Button 
+                className="rounded-xl font-bold bg-success hover:bg-success/90 text-success-foreground px-6 h-9 text-sm shadow-lg shadow-success/20 hover:shadow-success/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                onClick={handleCodeSubmit}
+                disabled={codeMutation.isPending}
+              >
+                {codeMutation.isPending ? (
+                  <>
+                    <div className="w-3.5 h-3.5 mr-1.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Running...
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 mr-1.5 fill-current" />
+                    Run Tests
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1">
-            <Editor
-              height="100%"
-              language={chal.language.toLowerCase()}
-              theme={isDark ? "vs-dark" : "vs"}
-              value={code}
-              onChange={(val) => setCode(val || "")}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 15,
-                fontFamily: '"JetBrains Mono", "Fira Code", Menlo, Monaco, monospace',
-                fontLigatures: true,
-                padding: { top: 20, bottom: 20 },
-                scrollBeyondLastLine: false,
-                smoothScrolling: true,
-                cursorBlinking: "smooth",
-                cursorSmoothCaretAnimation: "on",
-                renderLineHighlight: "gutter",
-                lineNumbersMinChars: 3,
-                folding: true,
-                bracketPairColorization: { enabled: true },
-              }}
-            />
+        {/* Mobile layout with tabs */}
+        <div className="flex md:hidden flex-col h-[calc(100vh-4rem)] bg-background">
+          <div className="flex border-b border-border/50 bg-card">
+            {([
+              { key: 'instructions' as const, label: 'Instructions', icon: FileText },
+              { key: 'editor' as const, label: 'Code', icon: Code2 },
+              { key: 'results' as const, label: 'Results', icon: Terminal },
+            ]).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setMobileTab(tab.key)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-semibold transition-colors relative ${
+                  mobileTab === tab.key ? 'text-primary' : 'text-muted-foreground'
+                }`}
+              >
+                <tab.icon className="w-3.5 h-3.5" />
+                {tab.label}
+                {tab.key === 'results' && codeResult && (
+                  <span className={`w-2 h-2 rounded-full ${codeResult.passed ? 'bg-success' : 'bg-destructive'}`} />
+                )}
+                {mobileTab === tab.key && (
+                  <motion.div layoutId="mobileTab" className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" />
+                )}
+              </button>
+            ))}
           </div>
-          <div className="h-14 border-t border-border/50 bg-card flex items-center justify-between px-5">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setCode(chal.starterCode)} 
-              className="text-muted-foreground text-xs font-semibold rounded-lg"
-            >
-              <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+
+          <div className="flex-1 min-h-0 overflow-hidden">
+            {mobileTab === 'instructions' && (
+              <div className="h-full overflow-y-auto p-4">
+                <h2 className="text-lg font-display font-bold mb-3">{lesson.title}</h2>
+                <div className="prose prose-sm dark:prose-invert prose-headings:font-display prose-pre:rounded-xl">
+                  <ReactMarkdown>{chal.instructions}</ReactMarkdown>
+                </div>
+                {chal.hints && chal.hints.length > 0 && (
+                  <div className="mt-4">
+                    <Button variant="outline" size="sm" onClick={() => setShowHints(!showHints)} className="rounded-xl text-xs font-semibold border-accent/30 text-accent">
+                      <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> {showHints ? "Hide" : "Hints"}
+                    </Button>
+                    {showHints && (
+                      <div className="mt-2 space-y-2">
+                        {chal.hints.map((hint: string, i: number) => (
+                          <div key={i} className="p-3 bg-accent/5 border border-accent/10 rounded-xl text-sm">
+                            <span className="font-semibold text-accent text-xs">Hint {i+1}:</span> {hint}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            {mobileTab === 'editor' && (
+              <div className="h-full flex flex-col">
+                <div className="flex-1 min-h-0">
+                  <Editor
+                    height="100%"
+                    language={chal.language.toLowerCase()}
+                    theme={isDark ? "vs-dark" : "vs"}
+                    value={code}
+                    onChange={(val) => setCode(val || "")}
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+                      padding: { top: 12, bottom: 12 },
+                      scrollBeyondLastLine: false,
+                      lineNumbersMinChars: 3,
+                      folding: false,
+                      automaticLayout: true,
+                      wordWrap: "on",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+            {mobileTab === 'results' && (
+              <div className="h-full overflow-y-auto p-4">
+                {!codeResult ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Terminal className="w-12 h-12 text-muted-foreground/20 mb-3" />
+                    <p className="text-muted-foreground font-medium">No results yet</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Run your code to see test results</p>
+                  </div>
+                ) : renderTestResults()}
+              </div>
+            )}
+          </div>
+
+          <div className="h-14 border-t border-border/50 bg-card flex items-center justify-between px-4">
+            <Button variant="ghost" size="sm" onClick={() => setCode(chal.starterCode)} className="text-muted-foreground text-xs rounded-lg">
+              <RotateCcw className="w-3.5 h-3.5 mr-1" />
               Reset
             </Button>
             <Button 
-              className="rounded-xl font-bold bg-success hover:bg-success/90 text-success-foreground px-6 h-9 text-sm shadow-lg shadow-success/20 hover:shadow-success/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+              className="rounded-xl font-bold bg-success hover:bg-success/90 text-success-foreground px-5 h-9 text-sm"
               onClick={handleCodeSubmit}
               disabled={codeMutation.isPending}
             >
@@ -399,7 +598,7 @@ export default function Lesson() {
             </Button>
           </div>
         </div>
-      </div>
+      </>
     );
   };
 
@@ -411,11 +610,16 @@ export default function Lesson() {
             <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="rounded-xl hover:bg-muted">
               <X className="w-5 h-5" />
             </Button>
-            <Progress value={0} className="w-32 md:w-56 h-2 rounded-full bg-muted" indicatorClassName="bg-gradient-to-r from-primary to-[hsl(280,80%,60%)]" />
+            <div className="flex-1 max-w-xs">
+              <Progress value={progressValue} className="h-2 rounded-full bg-muted" indicatorClassName="bg-gradient-to-r from-primary to-[hsl(280,80%,60%)] transition-all duration-700" />
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 font-bold text-sm text-accent bg-accent/8 px-3.5 py-1.5 rounded-full border border-accent/15">
-            <Star className="w-4 h-4 fill-current" />
-            <span>{lesson.xpReward} XP</span>
+          <div className="flex items-center gap-3">
+            <span className="hidden sm:block text-xs text-muted-foreground font-medium">{lesson.title}</span>
+            <div className="flex items-center gap-1.5 font-bold text-sm text-accent bg-accent/8 px-3.5 py-1.5 rounded-full border border-accent/15">
+              <Star className="w-4 h-4 fill-current" />
+              <span>{lesson.xpReward} XP</span>
+            </div>
           </div>
         </header>
 
