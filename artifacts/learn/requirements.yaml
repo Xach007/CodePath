@@ -1,0 +1,23 @@
+packages:
+  "framer-motion": "For premium gamification animations, page transitions, and achievement popups"
+  "canvas-confetti": "For lesson completion celebrations and level ups"
+  "@types/canvas-confetti": "Types for canvas-confetti"
+  "@monaco-editor/react": "For interactive coding challenges"
+  "react-markdown": "For rendering theory lesson content with proper formatting"
+  "remark-gfm": "Markdown github flavored support for tables and code blocks in theory lessons"
+images:
+  - path: "artifacts/learn/public/images/hero-illustration.png"
+    description: "3D illustration of a rocket launching from a laptop, vibrant colors, clean minimal background, edtech style"
+    aspect_ratio: "16:9"
+  - path: "artifacts/learn/public/images/avatar-placeholder.png"
+    description: "Cute geometric 3D robot face, vibrant solid background, for user profile avatar"
+    aspect_ratio: "1:1"
+  - path: "artifacts/learn/public/images/course-python.png"
+    description: "3D Python logo icon on a vibrant blue background, modern rounded, isometric, premium quality"
+    aspect_ratio: "16:9"
+  - path: "artifacts/learn/public/images/course-js.png"
+    description: "3D JavaScript logo icon on a vibrant yellow background, modern rounded, isometric, premium quality"
+    aspect_ratio: "16:9"
+notes:
+  - Token is stored in localStorage as 'auth_token'
+  - Overriding window.fetch in main entry to inject Authorization header for all API calls
