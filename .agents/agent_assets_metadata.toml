@@ -30,3 +30,9 @@ id = "ubfvQfILdnMJNZPe_poZO"
 uri = "file://attached_assets/CodePath_Пояснительная_записка.docx"
 type = "word_document"
 title = "CodePath — Пояснительная записка (.docx)"
+
+[[outputs]]
+id = "zSV44OcQMl7mW6p32roa8"
+uri = "file://attached_assets/CodePath_cost_breakdown.png"
+type = "image"
+title = "Структура затрат на разработку CodePath — круговая диаграмма"
