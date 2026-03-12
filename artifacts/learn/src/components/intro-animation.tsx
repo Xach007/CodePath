@@ -183,7 +183,7 @@ export function IntroAnimation({ onComplete }: { onComplete: () => void }) {
               pointerEvents: "none",
             }}
           >
-            <div style={{ position: "relative", width: "600px", maxWidth: "90vw", height: "200px" }}>
+            <div style={{ position: "relative", width: "600px", maxWidth: "90vw", height: "200px", transform: "translateY(-5vh)" }}>
               {CODE_FRAGMENTS.map((frag, i) => (
                 <motion.span
                   key={i}
@@ -227,6 +227,7 @@ export function IntroAnimation({ onComplete }: { onComplete: () => void }) {
               alignItems: "center",
               justifyContent: "center",
               pointerEvents: "none",
+              transform: "translateY(-3vh)",
             }}
           >
             <AnimatePresence>
