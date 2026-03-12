@@ -96,6 +96,23 @@ export function IntroAnimation({ onComplete }: { onComplete: () => void }) {
   const completedRef = useRef(false);
   const skipRef = useRef(false);
 
+  useEffect(() => {
+    const orig = document.body.style.overflow;
+    const origTouch = document.body.style.touchAction;
+    const origHeight = document.body.style.height;
+    const origHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+    document.body.style.height = "100%";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = orig;
+      document.body.style.touchAction = origTouch;
+      document.body.style.height = origHeight;
+      document.documentElement.style.overflow = origHtmlOverflow;
+    };
+  }, []);
+
   const finish = useCallback(() => {
     if (!completedRef.current) {
       completedRef.current = true;
@@ -144,6 +161,10 @@ export function IntroAnimation({ onComplete }: { onComplete: () => void }) {
             background: "#000",
             overflow: "hidden",
             cursor: "default",
+            touchAction: "none",
+            overscrollBehavior: "none",
+            height: "100dvh",
+            width: "100vw",
           }}
         >
           <Particles count={35} />
