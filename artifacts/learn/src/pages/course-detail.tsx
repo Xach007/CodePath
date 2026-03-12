@@ -90,13 +90,19 @@ export default function CourseDetail() {
           >
             <div className={`w-28 h-28 rounded-3xl shrink-0 flex items-center justify-center shadow-lg ${
               course.language.toLowerCase() === 'python' ? 'bg-gradient-to-br from-blue-500/15 to-cyan-500/10 shadow-blue-500/10' : 
-              course.language.toLowerCase() === 'javascript' ? 'bg-gradient-to-br from-yellow-500/15 to-orange-500/10 shadow-yellow-500/10' : 
+              course.language.toLowerCase() === 'javascript' ? 'bg-gradient-to-br from-yellow-500/15 to-orange-500/10 shadow-yellow-500/10' :
+              course.language.toLowerCase() === 'html' ? 'bg-gradient-to-br from-orange-500/15 to-red-500/10 shadow-orange-500/10' :
+              course.language.toLowerCase() === 'css' ? 'bg-gradient-to-br from-blue-600/15 to-indigo-500/10 shadow-blue-500/10' :
+              course.language.toLowerCase() === 'sql' ? 'bg-gradient-to-br from-sky-500/15 to-blue-500/10 shadow-sky-500/10' :
+              course.language.toLowerCase() === 'cpp' ? 'bg-gradient-to-br from-blue-700/15 to-blue-500/10 shadow-blue-700/10' :
+              course.language.toLowerCase() === 'java' ? 'bg-gradient-to-br from-red-500/15 to-orange-500/10 shadow-red-500/10' :
               'bg-gradient-to-br from-primary/15 to-primary/5 shadow-primary/10'
             }`}>
-              <span className="text-5xl drop-shadow-sm">
-                {course.language.toLowerCase() === 'python' ? '🐍' : 
-                 course.language.toLowerCase() === 'javascript' ? '⚡' : '💻'}
-              </span>
+              {course.imageUrl ? (
+                <img src={course.imageUrl} alt={course.language} className="w-16 h-16 object-contain drop-shadow-sm" />
+              ) : (
+                <span className="text-5xl drop-shadow-sm">💻</span>
+              )}
             </div>
             
             <div className="flex-1">

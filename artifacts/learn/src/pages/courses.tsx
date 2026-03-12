@@ -52,13 +52,19 @@ export default function Courses() {
                 <Card className="group h-full rounded-3xl overflow-hidden border-border/50 shadow-sm hover:shadow-xl card-hover cursor-pointer flex flex-col">
                   <div className={`h-44 p-6 flex items-center justify-center relative overflow-hidden ${
                     course.language.toLowerCase() === 'python' ? 'bg-gradient-to-br from-blue-500/10 via-blue-400/5 to-cyan-500/10' : 
-                    course.language.toLowerCase() === 'javascript' ? 'bg-gradient-to-br from-yellow-500/10 via-amber-400/5 to-orange-500/10' : 
+                    course.language.toLowerCase() === 'javascript' ? 'bg-gradient-to-br from-yellow-500/10 via-amber-400/5 to-orange-500/10' :
+                    course.language.toLowerCase() === 'html' ? 'bg-gradient-to-br from-orange-500/10 via-orange-400/5 to-red-500/10' :
+                    course.language.toLowerCase() === 'css' ? 'bg-gradient-to-br from-blue-600/10 via-blue-500/5 to-indigo-500/10' :
+                    course.language.toLowerCase() === 'sql' ? 'bg-gradient-to-br from-sky-500/10 via-sky-400/5 to-blue-500/10' :
+                    course.language.toLowerCase() === 'cpp' ? 'bg-gradient-to-br from-blue-700/10 via-blue-600/5 to-blue-500/10' :
+                    course.language.toLowerCase() === 'java' ? 'bg-gradient-to-br from-red-500/10 via-red-400/5 to-orange-500/10' :
                     'bg-gradient-to-br from-primary/10 to-primary/5'
                   }`}>
-                    <div className="text-6xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-700 relative z-10 drop-shadow-sm">
-                      {course.language.toLowerCase() === 'python' ? '🐍' : 
-                       course.language.toLowerCase() === 'javascript' ? '⚡' : '💻'}
-                    </div>
+                    {course.imageUrl ? (
+                      <img src={course.imageUrl} alt={course.language} className="w-20 h-20 object-contain group-hover:scale-110 group-hover:rotate-3 transition-all duration-700 relative z-10 drop-shadow-sm" />
+                    ) : (
+                      <div className="text-6xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-700 relative z-10 drop-shadow-sm">💻</div>
+                    )}
                     <Badge variant="secondary" className="absolute top-4 right-4 z-20 font-semibold capitalize bg-background/80 backdrop-blur-sm border-border/50 text-xs">
                       {course.difficulty}
                     </Badge>

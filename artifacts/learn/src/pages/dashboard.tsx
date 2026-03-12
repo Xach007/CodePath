@@ -109,9 +109,11 @@ export default function Dashboard() {
                 <div className="p-7 md:p-8 flex flex-col md:flex-row gap-8 items-center relative">
                   <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/[0.03] to-transparent pointer-events-none" />
                   <div className="w-20 h-20 shrink-0 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center border border-primary/10">
-                    <span className="text-4xl">
-                      {activeCourse.language.toLowerCase() === 'python' ? '🐍' : '⚡'}
-                    </span>
+                    {activeCourse.imageUrl ? (
+                      <img src={activeCourse.imageUrl} alt={activeCourse.language} className="w-12 h-12 object-contain" />
+                    ) : (
+                      <span className="text-4xl">💻</span>
+                    )}
                   </div>
                   <div className="flex-1 w-full text-center md:text-left">
                     <div className="inline-block px-3 py-1 rounded-full bg-primary/8 text-primary text-xs font-bold tracking-wide uppercase mb-3 border border-primary/10">
@@ -161,11 +163,16 @@ export default function Dashboard() {
                     <Card className="group rounded-2xl border-border/50 overflow-hidden card-hover cursor-pointer h-full">
                       <div className={`h-28 p-5 flex items-center justify-center relative overflow-hidden ${
                         course.language.toLowerCase() === 'python' ? 'bg-gradient-to-br from-blue-500/10 to-cyan-500/5' : 
-                        'bg-gradient-to-br from-yellow-500/10 to-orange-500/5'
+                        course.language.toLowerCase() === 'javascript' ? 'bg-gradient-to-br from-yellow-500/10 to-orange-500/5' :
+                        course.language.toLowerCase() === 'html' ? 'bg-gradient-to-br from-orange-500/10 to-red-500/5' :
+                        course.language.toLowerCase() === 'css' ? 'bg-gradient-to-br from-blue-600/10 to-indigo-500/5' :
+                        'bg-gradient-to-br from-primary/10 to-primary/5'
                       }`}>
-                        <span className="text-5xl group-hover:scale-110 transition-transform duration-500">
-                          {course.language.toLowerCase() === 'python' ? '🐍' : '⚡'}
-                        </span>
+                        {course.imageUrl ? (
+                          <img src={course.imageUrl} alt={course.language} className="w-14 h-14 object-contain group-hover:scale-110 transition-transform duration-500" />
+                        ) : (
+                          <span className="text-5xl group-hover:scale-110 transition-transform duration-500">💻</span>
+                        )}
                       </div>
                       <CardContent className="p-5">
                         <h3 className="font-bold font-display text-base mb-1 group-hover:text-primary transition-colors">{course.title}</h3>

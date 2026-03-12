@@ -64,6 +64,7 @@ async function seed() {
     title: "Python Fundamentals",
     description: "Master the basics of Python programming from scratch. Learn variables, control flow, functions, and data structures through hands-on exercises.",
     language: "python", difficulty: "beginner", totalLessons: 18, estimatedHours: 6, xpReward: 500, isPublished: true,
+    imageUrl: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg",
   }).returning();
 
   // Python Module 1: Getting Started
@@ -199,6 +200,7 @@ async function seed() {
     title: "JavaScript Essentials",
     description: "Learn JavaScript from zero to building interactive web applications. Master variables, functions, DOM manipulation, and modern ES6+ features.",
     language: "javascript", difficulty: "beginner", totalLessons: 18, estimatedHours: 6, xpReward: 500, isPublished: true,
+    imageUrl: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg",
   }).returning();
 
   // JS Module 1: Basics
@@ -338,6 +340,7 @@ async function seed() {
     title: "HTML Fundamentals",
     description: "Learn to structure web pages with HTML. Master semantic elements, forms, tables, and accessibility best practices.",
     language: "html", difficulty: "beginner", totalLessons: 15, estimatedHours: 4, xpReward: 400, isPublished: true,
+    imageUrl: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg",
   }).returning();
 
   // HTML Module 1
@@ -457,6 +460,7 @@ async function seed() {
     title: "CSS Styling Mastery",
     description: "Style beautiful web pages with CSS. Learn selectors, the box model, flexbox, grid, animations, and responsive design.",
     language: "css", difficulty: "beginner", totalLessons: 15, estimatedHours: 5, xpReward: 450, isPublished: true,
+    imageUrl: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg",
   }).returning();
 
   // CSS Module 1: Basics
@@ -576,6 +580,7 @@ async function seed() {
     title: "SQL for Beginners",
     description: "Learn to query and manage databases with SQL. Master SELECT, JOIN, aggregation, and data manipulation for real-world applications.",
     language: "sql", difficulty: "beginner", totalLessons: 15, estimatedHours: 5, xpReward: 450, isPublished: true,
+    imageUrl: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg",
   }).returning();
 
   // SQL Module 1: Basics
@@ -698,6 +703,7 @@ async function seed() {
     title: "C++ Programming",
     description: "Learn C++ from the ground up — variables, control flow, functions, pointers, OOP, and the STL. Build fast, efficient programs.",
     language: "cpp", difficulty: "intermediate", totalLessons: 20, estimatedHours: 10, xpReward: 700, isPublished: true,
+    imageUrl: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg",
   }).returning();
 
   const [cppMod1] = await db.insert(modulesTable).values({ courseId: cppCourse.id, title: "Getting Started with C++", description: "Your first C++ programs", orderIndex: 0 }).returning();
@@ -793,6 +799,7 @@ async function seed() {
     title: "Java Programming",
     description: "Learn Java fundamentals — syntax, OOP, collections, exception handling, and more. Build robust, portable applications.",
     language: "java", difficulty: "intermediate", totalLessons: 20, estimatedHours: 10, xpReward: 700, isPublished: true,
+    imageUrl: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg",
   }).returning();
 
   const [javaMod1] = await db.insert(modulesTable).values({ courseId: javaCourse.id, title: "Java Basics", description: "Getting started with Java", orderIndex: 0 }).returning();
