@@ -192,6 +192,18 @@ export interface QuizResult {
   newAchievements: Achievement[];
 }
 
+export interface CheckAnswerBody {
+  questionId: number;
+  optionId: number;
+}
+
+export interface CheckAnswerResult {
+  correct: boolean;
+  correctOptionId: number;
+  /** @nullable */
+  explanation?: string | null;
+}
+
 export interface CodeSubmission {
   code: string;
   language: string;

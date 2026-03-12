@@ -19,6 +19,8 @@ import type {
 import type {
   Achievement,
   AuthResponse,
+  CheckAnswerBody,
+  CheckAnswerResult,
   CodeResult,
   CodeSubmission,
   CompletionResult,
@@ -933,6 +935,92 @@ export const useSubmitQuiz = <
   TContext
 > => {
   return useMutation(getSubmitQuizMutationOptions(options));
+};
+
+/**
+ * @summary Check a single quiz answer
+ */
+export const getCheckAnswerUrl = (lessonId: number) => {
+  return `/api/lessons/${lessonId}/check-answer`;
+};
+
+export const checkAnswer = async (
+  lessonId: number,
+  checkAnswerBody: CheckAnswerBody,
+  options?: RequestInit,
+): Promise<CheckAnswerResult> => {
+  return customFetch<Promise<CheckAnswerResult>>(getCheckAnswerUrl(lessonId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(checkAnswerBody),
+  });
+};
+
+export const getCheckAnswerMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof checkAnswer>>,
+    TError,
+    { lessonId: number; data: BodyType<CheckAnswerBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof checkAnswer>>,
+  TError,
+  { lessonId: number; data: BodyType<CheckAnswerBody> },
+  TContext
+> => {
+  const mutationKey = ["checkAnswer"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof checkAnswer>>,
+    { lessonId: number; data: BodyType<CheckAnswerBody> }
+  > = (props) => {
+    const { lessonId, data } = props ?? {};
+    return checkAnswer(lessonId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CheckAnswerMutationResult = NonNullable<
+  Awaited<ReturnType<typeof checkAnswer>>
+>;
+export type CheckAnswerMutationBody = BodyType<CheckAnswerBody>;
+export type CheckAnswerMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Check a single quiz answer
+ */
+export const useCheckAnswer = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof checkAnswer>>,
+    TError,
+    { lessonId: number; data: BodyType<CheckAnswerBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof checkAnswer>>,
+  TError,
+  { lessonId: number; data: BodyType<CheckAnswerBody> },
+  TContext
+> => {
+  return useMutation(getCheckAnswerMutationOptions(options));
 };
 
 /**

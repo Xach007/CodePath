@@ -17,6 +17,9 @@ import {
   SubmitCodeParams,
   SubmitCodeBody,
   SubmitCodeResponse,
+  CheckAnswerParams,
+  CheckAnswerBody,
+  CheckAnswerResponse,
 } from "@workspace/api-zod";
 import { authMiddleware, getAuthUserId } from "../lib/auth";
 import { awardXP, updateStreak, checkAndUnlockAchievements } from "../lib/gamification";
@@ -172,6 +175,40 @@ router.post("/lessons/:lessonId/complete", authMiddleware, async (req, res): Pro
     newAchievements,
     streakUpdated: streakResult.updated,
     currentStreak: streakResult.currentStreak,
+  }));
+});
+
+router.post("/lessons/:lessonId/check-answer", authMiddleware, async (req, res): Promise<void> => {
+  const params = CheckAnswerParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid lesson ID" });
+    return;
+  }
+  const body = CheckAnswerBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const lessonId = params.data.lessonId;
+  const { questionId, optionId } = body.data;
+
+  const [question] = await db.select().from(quizQuestionsTable)
+    .where(eq(quizQuestionsTable.id, questionId));
+  if (!question || question.lessonId !== lessonId) {
+    res.status(404).json({ error: "Question not found" });
+    return;
+  }
+
+  const options = await db.select().from(quizOptionsTable)
+    .where(eq(quizOptionsTable.questionId, questionId));
+  const correctOption = options.find(o => o.isCorrect);
+  const isCorrect = optionId === correctOption?.id;
+
+  res.json(CheckAnswerResponse.parse({
+    correct: isCorrect,
+    correctOptionId: correctOption?.id ?? 0,
+    explanation: question.explanation,
   }));
 });
 

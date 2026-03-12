@@ -261,6 +261,24 @@ export const SubmitQuizResponse = zod.object({
 });
 
 /**
+ * @summary Check a single quiz answer
+ */
+export const CheckAnswerParams = zod.object({
+  lessonId: zod.coerce.number(),
+});
+
+export const CheckAnswerBody = zod.object({
+  questionId: zod.number(),
+  optionId: zod.number(),
+});
+
+export const CheckAnswerResponse = zod.object({
+  correct: zod.boolean(),
+  correctOptionId: zod.number(),
+  explanation: zod.string().nullish(),
+});
+
+/**
  * @summary Submit code for a coding challenge
  */
 export const SubmitCodeParams = zod.object({
