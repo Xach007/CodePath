@@ -6,3 +6,9 @@ id = "kFDDtmrVQzIFuMEon2MOC"
 uri = "file://CodePath_Пояснительная_записка.md"
 type = "text"
 title = "Пояснительная записка - CodePath"
+
+[[outputs]]
+id = "p66RB92NBfplZ4sQGjP_N"
+uri = "file://CodePath_Пояснительная_записка.docx"
+type = "word_document"
+title = "Пояснительная записка CodePath (.docx)"
