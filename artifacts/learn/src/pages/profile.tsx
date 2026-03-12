@@ -1,10 +1,18 @@
-import { useGetMe, useGetUserProgress, useGetGamificationProfile } from "@workspace/api-client-react";
+import { useState } from "react";
+import { useGetMe, useGetUserProgress, useGetGamificationProfile, getGetMeQueryKey } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Calendar, Flame, Star, Trophy, BookOpen, Zap } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Calendar, Flame, Star, Trophy, BookOpen, Settings, Save, X } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { getToken } from "@/lib/auth";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -20,6 +28,13 @@ export default function Profile() {
   const { data: user, isLoading: isLoadingUser } = useGetMe();
   const { data: progress, isLoading: isLoadingProgress } = useGetUserProgress();
   const { data: gamification, isLoading: isLoadingGame } = useGetGamificationProfile();
+  const queryClient = useQueryClient();
+  const { t, i18n } = useTranslation();
+
+  const [showSettings, setShowSettings] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editAvatar, setEditAvatar] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const isLoading = isLoadingUser || isLoadingProgress || isLoadingGame;
 
@@ -34,7 +49,41 @@ export default function Profile() {
 
   if (!user || !gamification) return null;
 
-  const joinDate = new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const joinDate = new Date(user.createdAt).toLocaleDateString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' });
+
+  const handleOpenSettings = () => {
+    setEditName(user.displayName || user.username);
+    setEditAvatar(user.avatarUrl || "");
+    setShowSettings(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const token = getToken();
+      const base = import.meta.env.BASE_URL || "/";
+      const res = await fetch(`${base}api/auth/profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ displayName: editName, avatarUrl: editAvatar }),
+      });
+      if (res.ok) {
+        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        toast.success(t("profile.saved"));
+        setShowSettings(false);
+      } else {
+        toast.error(t("common.error"));
+      }
+    } catch {
+      toast.error(t("common.error"));
+    }
+    setSaving(false);
+  };
+
+  const toggleLanguage = () => {
+    const newLang = i18n.language === "ru" ? "en" : "ru";
+    i18n.changeLanguage(newLang);
+  };
 
   return (
     <motion.div 
@@ -58,24 +107,78 @@ export default function Profile() {
               <div>
                 <h1 className="text-2xl font-display font-bold">{user.displayName || user.username}</h1>
                 <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                  @{user.username} <span className="opacity-30">·</span> <Calendar className="w-3.5 h-3.5" /> Joined {joinDate}
+                  @{user.username} <span className="opacity-30">·</span> <Calendar className="w-3.5 h-3.5" /> {t("profile.joined")} {joinDate}
                 </p>
               </div>
+              <Button variant="outline" size="sm" className="rounded-xl gap-2" onClick={handleOpenSettings}>
+                <Settings className="w-4 h-4" />
+                {t("profile.editProfile")}
+              </Button>
             </div>
           </div>
         </Card>
       </motion.div>
 
+      {showSettings && (
+        <motion.div variants={fadeUp} initial="hidden" animate="show">
+          <Card className="rounded-3xl border-border/50 shadow-sm">
+            <CardContent className="p-7">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="font-display font-bold text-lg">{t("profile.settings")}</h3>
+                <Button variant="ghost" size="icon" onClick={() => setShowSettings(false)} className="rounded-xl">
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label>{t("profile.displayName")}</Label>
+                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="rounded-xl" placeholder={t("profile.displayName")} />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("profile.avatarUrl")}</Label>
+                  <Input value={editAvatar} onChange={(e) => setEditAvatar(e.target.value)} className="rounded-xl" placeholder="https://..." />
+                  {editAvatar && (
+                    <div className="flex items-center gap-3 mt-2">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={editAvatar} />
+                        <AvatarFallback>?</AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-muted-foreground">{t("profile.avatarPreview")}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("profile.language")}</Label>
+                  <Button variant="outline" className="rounded-xl gap-2 w-full justify-start" onClick={toggleLanguage}>
+                    <span className="text-base">{i18n.language === "ru" ? "🇷🇺" : "🇬🇧"}</span>
+                    {i18n.language === "ru" ? "Русский" : "English"}
+                  </Button>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <Button onClick={handleSave} disabled={saving} className="rounded-xl gap-2">
+                    <Save className="w-4 h-4" />
+                    {saving ? t("common.loading") : t("common.save")}
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowSettings(false)} className="rounded-xl">
+                    {t("common.cancel")}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       <div className="grid md:grid-cols-3 gap-6">
         <motion.div variants={fadeUp} className="space-y-6">
           <Card className="rounded-3xl border-border/50 shadow-sm">
             <CardContent className="p-6">
-              <h3 className="font-display font-bold text-base mb-5">Statistics</h3>
+              <h3 className="font-display font-bold text-base mb-5">{t("profile.stats")}</h3>
               <div className="space-y-5">
                 {[
-                  { icon: Flame, label: "Day Streak", value: gamification.currentStreak, color: "text-accent", bg: "bg-accent/10" },
-                  { icon: Star, label: "Total XP", value: gamification.totalXP, color: "text-primary", bg: "bg-primary/10" },
-                  { icon: Trophy, label: "Achievements", value: gamification.achievements?.length || 0, color: "text-purple-500", bg: "bg-purple-500/10" },
+                  { icon: Flame, label: t("dashboard.streak"), value: gamification.currentStreak, color: "text-accent", bg: "bg-accent/10" },
+                  { icon: Star, label: t("dashboard.totalXP"), value: gamification.totalXP, color: "text-primary", bg: "bg-primary/10" },
+                  { icon: Trophy, label: t("achievements.title"), value: gamification.achievements?.length || 0, color: "text-purple-500", bg: "bg-purple-500/10" },
                 ].map((stat, i) => (
                   <div key={i} className="flex items-center gap-3.5">
                     <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center ${stat.color}`}>
@@ -97,8 +200,8 @@ export default function Profile() {
             <CardContent className="p-7">
               <div className="flex justify-between items-end mb-5">
                 <div>
-                  <h3 className="font-display font-bold text-xl">Level {gamification.currentLevel}</h3>
-                  <p className="text-sm text-muted-foreground mt-0.5">Keep learning to level up!</p>
+                  <h3 className="font-display font-bold text-xl">{t("dashboard.level")} {gamification.currentLevel}</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">{t("profile.keepLearning")}</p>
                 </div>
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-[hsl(280,80%,60%)] flex items-center justify-center text-white font-display font-black text-xl shadow-lg shadow-primary/25">
                   {gamification.currentLevel}
@@ -121,25 +224,25 @@ export default function Profile() {
 
           <Card className="rounded-3xl border-border/50 shadow-sm">
             <CardContent className="p-7">
-              <h3 className="font-display font-bold text-base mb-5">Course Progress</h3>
+              <h3 className="font-display font-bold text-base mb-5">{t("profile.courseProgress")}</h3>
               
               {progress?.coursesProgress?.length ? (
                 <div className="space-y-5">
-                  {progress.coursesProgress.map(cp => (
+                  {progress.coursesProgress.map((cp: any) => (
                     <div key={cp.courseId}>
                       <div className="flex justify-between items-center mb-2">
                         <p className="font-semibold text-sm">{cp.courseTitle}</p>
                         <p className="text-xs text-primary font-bold">{cp.percentComplete}%</p>
                       </div>
                       <Progress value={cp.percentComplete} className="h-2 mb-1.5" indicatorClassName="bg-gradient-to-r from-primary to-[hsl(280,80%,60%)]" />
-                      <p className="text-xs text-muted-foreground">{cp.completedLessons} / {cp.totalLessons} lessons</p>
+                      <p className="text-xs text-muted-foreground">{cp.completedLessons} / {cp.totalLessons} {t("courses.lessons")}</p>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                  <p className="text-sm">You haven't started any courses yet.</p>
+                  <p className="text-sm">{t("profile.noCourses")}</p>
                 </div>
               )}
             </CardContent>

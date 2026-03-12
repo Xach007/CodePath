@@ -120,7 +120,17 @@
   "profile": {
     "title": "Профиль",
     "stats": "Статистика",
-    "courseProgress": "Прогресс курсов"
+    "courseProgress": "Прогресс курсов",
+    "editProfile": "Редактировать",
+    "settings": "Настройки профиля",
+    "displayName": "Отображаемое имя",
+    "avatarUrl": "Ссылка на аватар",
+    "avatarPreview": "Превью аватара",
+    "language": "Язык",
+    "saved": "Профиль сохранён!",
+    "joined": "Присоединился",
+    "keepLearning": "Продолжай учиться, чтобы повысить уровень!",
+    "noCourses": "Ты ещё не начал ни одного курса."
   },
   "achievements": {
     "title": "Достижения",

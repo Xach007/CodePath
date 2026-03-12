@@ -152,6 +152,7 @@ export const GetLessonParams = zod.object({
 export const GetLessonResponse = zod.object({
   id: zod.number(),
   moduleId: zod.number(),
+  courseId: zod.number().nullish(),
   title: zod.string(),
   type: zod.enum(["theory", "quiz", "challenge"]),
   orderIndex: zod.number(),

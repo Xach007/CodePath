@@ -49,7 +49,7 @@ React 19 + Vite app mounted at `/`. Uses wouter for routing, TanStack React Quer
 ### Pages
 - **Landing** (`/`) — Hero section with i18n, login/register modals, features section, language switcher
 - **Dashboard** (`/dashboard`) — Welcome banner, active course progress, stats grid, level card, recent achievements
-- **Courses** (`/courses`) — Course library grid with animated cards (5 courses: Python, JavaScript, HTML, CSS, SQL)
+- **Courses** (`/courses`) — Course library grid with animated cards (7 courses: Python, JavaScript, HTML, CSS, SQL, C++, Java)
 - **Course Detail** (`/courses/:id`) — Course hero, stats, syllabus with accordion modules listing all lessons
 - **Lesson** (`/lessons/:id`) — Immersive lesson view (no standard layout):
   - Theory: Markdown content with lesson type badge and "Complete & Continue" button
@@ -57,13 +57,13 @@ React 19 + Vite app mounted at `/`. Uses wouter for routing, TanStack React Quer
   - Challenge: Desktop split-pane (instructions + Monaco editor + test results); Mobile tabbed layout (Instructions/Code/Results tabs) with auto-switch to results on failure
   - Error output display: Runtime errors, stdout output, and per-test expected/actual comparison
   - Test result counter badge (passed/total) in the results panel header
-- **Profile** (`/profile`) — User stats, level progress, course progress
+- **Profile** (`/profile`) — User stats, level progress, course progress, profile settings (edit display name, avatar URL, language toggle)
 - **Achievements** (`/achievements`) — Achievement grid (locked/unlocked)
 - **Leaderboard** (`/leaderboard`) — Top users by XP
 - **Admin** (`/admin`) — Admin login + dashboard with sidebar tabs: Dashboard stats, Courses CRUD (with modules/lessons), Users management, Achievements CRUD
 
 ### Key Features
-- **i18n**: English/Russian language switching via Globe button in navbar. Uses react-i18next with localStorage persistence. Translation files in `src/locales/en.json` and `src/locales/ru.json`.
+- **i18n**: English/Russian language switching via flag emoji button (🇬🇧/🇷🇺) in navbar. Uses react-i18next with localStorage persistence. Translation files in `src/locales/en.json` and `src/locales/ru.json`.
 - **Dark mode**: Toggle in navbar, persists to localStorage, applies `dark` class to `<html>`
 - **Auth**: JWT stored in localStorage, injected via global fetch interceptor in `lib/auth.ts`; auto-logout on 401
 - **Gamification UI**: XP and streak badges in navbar, confetti on lesson completion, success overlay with XP and achievements
@@ -87,7 +87,7 @@ Express 5 API server. All routes under `/api`.
 - Admin panel frontend at `/admin` with separate auth token (`admin_token` in localStorage)
 
 ### Routes
-- **Auth**: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
+- **Auth**: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `PATCH /api/auth/profile` (update displayName/avatarUrl)
 - **Courses**: `GET /api/courses` (public), `GET /api/courses/:courseId` (public, published-only; includes modules with full lesson arrays)
 - **Modules**: `GET /api/modules/:moduleId` (includes lessons)
 - **Lessons**: `GET /api/lessons/:lessonId`, `POST /api/lessons/:lessonId/complete`, `POST /api/lessons/:lessonId/quiz`, `POST /api/lessons/:lessonId/code`
@@ -137,15 +137,19 @@ Tables in `lib/db/src/schema/`:
 
 Run: `npx tsx scripts/src/seed.ts`
 
-Seeds 5 courses with 81 total lessons:
+Seeds 7 courses with 121 total lessons:
 - **Python Fundamentals** (18 lessons, 6 modules) — variables, control flow, loops, functions, data structures
 - **JavaScript Essentials** (18 lessons, 6 modules) — basics, functions/arrays, objects, loops, strings, modern JS
 - **HTML Fundamentals** (15 lessons, 5 modules) — basics, links/images, forms, semantic HTML, tables
 - **CSS Styling Mastery** (15 lessons, 5 modules) — basics, box model, flexbox, grid, responsive design
 - **SQL for Beginners** (15 lessons, 5 modules) — basics, aggregation, JOINs, DML, advanced queries
+- **C++ Programming** (20 lessons, 5 modules) — basics, control flow, functions/pointers, arrays/strings, OOP
+- **Java Programming** (20 lessons, 5 modules) — basics, control flow, methods, OOP, collections/generics
 
-Each module has 3 lessons: Theory -> Quiz (3 questions) -> Coding Challenge with tests.
+Each module has 3-4 lessons: Theory -> Quiz (2-3 questions) -> additional theory or challenge.
 Also seeds 11 achievements (first lesson, streak milestones, XP milestones, etc.).
+
+Seed script uses per-language guards: existing courses won't be re-seeded; new courses (e.g. C++, Java) are added independently.
 
 ## TypeScript & Composite Projects
 

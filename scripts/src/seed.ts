@@ -53,10 +53,11 @@ async function seed() {
   }
 
   const existingCourses = await db.select().from(coursesTable);
-  if (existingCourses.length > 0) {
-    console.log("Courses already exist, skipping course seed.");
-    return;
-  }
+  const existingLanguages = new Set(existingCourses.map(c => c.language));
+
+  if (existingLanguages.has("python")) {
+    console.log("Original courses already exist, skipping Python/JS/HTML/CSS/SQL seed.");
+  } else {
 
   // =============== PYTHON COURSE ===============
   const [pythonCourse] = await db.insert(coursesTable).values({
@@ -688,6 +689,198 @@ async function seed() {
   });
 
   console.log("SQL course seeded (15 lessons)");
+
+  } // end of original courses block
+
+  // =============== C++ COURSE ===============
+  if (!existingLanguages.has("cpp")) {
+  const [cppCourse] = await db.insert(coursesTable).values({
+    title: "C++ Programming",
+    description: "Learn C++ from the ground up — variables, control flow, functions, pointers, OOP, and the STL. Build fast, efficient programs.",
+    language: "cpp", difficulty: "intermediate", totalLessons: 20, estimatedHours: 10, xpReward: 700, isPublished: true,
+  }).returning();
+
+  const [cppMod1] = await db.insert(modulesTable).values({ courseId: cppCourse.id, title: "Getting Started with C++", description: "Your first C++ programs", orderIndex: 0 }).returning();
+  await db.insert(lessonsTable).values({ moduleId: cppMod1.id, title: "Introduction to C++", type: "theory", orderIndex: 0, xpReward: 10, estimatedMinutes: 5,
+    content: `# Introduction to C++\n\nC++ is a **powerful, general-purpose programming language** created by Bjarne Stroustrup in 1979.\n\n## Why C++?\n\n- **Performance**: One of the fastest languages\n- **System-level**: Used in OS, game engines, embedded systems\n- **OOP support**: Classes, inheritance, polymorphism\n\n## Hello World\n\n\`\`\`cpp\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, World!" << endl;\n    return 0;\n}\n\`\`\`\n\n## Key Points\n\n- \`#include <iostream>\` imports the I/O library\n- \`cout\` prints output to the console\n- \`endl\` adds a newline\n- Every program starts from \`main()\``,
+  });
+  const [cppQ1] = await db.insert(lessonsTable).values({ moduleId: cppMod1.id, title: "C++ Basics Quiz", type: "quiz", orderIndex: 1, xpReward: 15, estimatedMinutes: 5 }).returning();
+  await createQuiz(cppQ1.id, [
+    { question: "Who created C++?", explanation: "C++ was created by Bjarne Stroustrup.", options: [{ text: "Bjarne Stroustrup", isCorrect: true }, { text: "Dennis Ritchie", isCorrect: false }, { text: "James Gosling", isCorrect: false }, { text: "Guido van Rossum", isCorrect: false }] },
+    { question: "Which header is used for input/output in C++?", explanation: "<iostream> provides cin and cout.", options: [{ text: "<iostream>", isCorrect: true }, { text: "<stdio.h>", isCorrect: false }, { text: "<conio.h>", isCorrect: false }, { text: "<string>", isCorrect: false }] },
+    { question: "What does 'endl' do?", explanation: "endl inserts a newline and flushes the stream.", options: [{ text: "Inserts a newline", isCorrect: true }, { text: "Ends the program", isCorrect: false }, { text: "Clears the screen", isCorrect: false }, { text: "Pauses output", isCorrect: false }] },
+  ]);
+  await db.insert(lessonsTable).values({ moduleId: cppMod1.id, title: "Variables & Data Types", type: "theory", orderIndex: 2, xpReward: 10, estimatedMinutes: 6,
+    content: `# Variables & Data Types\n\nC++ is a **statically typed** language — every variable must have a declared type.\n\n## Common Types\n\n| Type | Description | Example |\n|------|------------|--------|\n| int | Integer | \`int x = 42;\` |\n| double | Decimal | \`double pi = 3.14;\` |\n| char | Character | \`char c = 'A';\` |\n| string | Text | \`string name = "C++";\` |\n| bool | Boolean | \`bool ok = true;\` |\n\n## Declaration & Initialization\n\n\`\`\`cpp\nint age = 25;\ndouble salary = 50000.50;\nstring city = "Moscow";\nbool isStudent = true;\n\`\`\`\n\n## Constants\n\n\`\`\`cpp\nconst double PI = 3.14159;\n\`\`\``,
+  });
+  const [cppQ2] = await db.insert(lessonsTable).values({ moduleId: cppMod1.id, title: "Variables Quiz", type: "quiz", orderIndex: 3, xpReward: 15, estimatedMinutes: 5 }).returning();
+  await createQuiz(cppQ2.id, [
+    { question: "Which type stores decimal numbers in C++?", explanation: "double (or float) stores decimal values.", options: [{ text: "double", isCorrect: true }, { text: "int", isCorrect: false }, { text: "char", isCorrect: false }, { text: "bool", isCorrect: false }] },
+    { question: "How do you declare a constant in C++?", explanation: "The const keyword makes a variable unchangeable.", options: [{ text: "const int x = 5;", isCorrect: true }, { text: "final int x = 5;", isCorrect: false }, { text: "let x = 5;", isCorrect: false }, { text: "static int x = 5;", isCorrect: false }] },
+  ]);
+
+  const [cppMod2] = await db.insert(modulesTable).values({ courseId: cppCourse.id, title: "Control Flow", description: "Conditionals and loops", orderIndex: 1 }).returning();
+  await db.insert(lessonsTable).values({ moduleId: cppMod2.id, title: "If/Else Statements", type: "theory", orderIndex: 0, xpReward: 10, estimatedMinutes: 5,
+    content: `# If/Else Statements\n\n## Basic Syntax\n\n\`\`\`cpp\nif (condition) {\n    // code\n} else if (another) {\n    // code\n} else {\n    // code\n}\n\`\`\`\n\n## Comparison Operators\n\n- \`==\` equal, \`!=\` not equal\n- \`<\`, \`>\`, \`<=\`, \`>=\`\n- \`&&\` AND, \`||\` OR, \`!\` NOT\n\n## Example\n\n\`\`\`cpp\nint score = 85;\nif (score >= 90) {\n    cout << "A" << endl;\n} else if (score >= 80) {\n    cout << "B" << endl;\n} else {\n    cout << "C" << endl;\n}\n\`\`\``,
+  });
+  await db.insert(lessonsTable).values({ moduleId: cppMod2.id, title: "Loops in C++", type: "theory", orderIndex: 1, xpReward: 10, estimatedMinutes: 6,
+    content: `# Loops in C++\n\n## For Loop\n\n\`\`\`cpp\nfor (int i = 0; i < 5; i++) {\n    cout << i << " ";\n}\n// Output: 0 1 2 3 4\n\`\`\`\n\n## While Loop\n\n\`\`\`cpp\nint n = 5;\nwhile (n > 0) {\n    cout << n << " ";\n    n--;\n}\n// Output: 5 4 3 2 1\n\`\`\`\n\n## Do-While Loop\n\n\`\`\`cpp\nint x = 1;\ndo {\n    cout << x << endl;\n    x++;\n} while (x <= 3);\n\`\`\`\n\n## Range-Based For (C++11)\n\n\`\`\`cpp\nint arr[] = {10, 20, 30};\nfor (int val : arr) {\n    cout << val << endl;\n}\n\`\`\``,
+  });
+  const [cppQ3] = await db.insert(lessonsTable).values({ moduleId: cppMod2.id, title: "Control Flow Quiz", type: "quiz", orderIndex: 2, xpReward: 15, estimatedMinutes: 5 }).returning();
+  await createQuiz(cppQ3.id, [
+    { question: "Which loop guarantees at least one execution?", explanation: "do-while always executes the body once before checking.", options: [{ text: "do-while", isCorrect: true }, { text: "for", isCorrect: false }, { text: "while", isCorrect: false }, { text: "foreach", isCorrect: false }] },
+    { question: "What is the logical AND operator in C++?", explanation: "&& is the logical AND operator.", options: [{ text: "&&", isCorrect: true }, { text: "and", isCorrect: false }, { text: "&", isCorrect: false }, { text: "||", isCorrect: false }] },
+  ]);
+  await db.insert(lessonsTable).values({ moduleId: cppMod2.id, title: "Switch Statement", type: "theory", orderIndex: 3, xpReward: 10, estimatedMinutes: 5,
+    content: `# Switch Statement\n\nThe switch statement selects one of many code blocks.\n\n\`\`\`cpp\nint day = 3;\nswitch (day) {\n    case 1: cout << "Monday"; break;\n    case 2: cout << "Tuesday"; break;\n    case 3: cout << "Wednesday"; break;\n    default: cout << "Other";\n}\n\`\`\`\n\n## Rules\n\n- Each \`case\` must end with \`break\`\n- \`default\` handles unmatched values\n- Only works with integers, chars, enums`,
+  });
+
+  const [cppMod3] = await db.insert(modulesTable).values({ courseId: cppCourse.id, title: "Functions", description: "Reusable code blocks", orderIndex: 2 }).returning();
+  await db.insert(lessonsTable).values({ moduleId: cppMod3.id, title: "Defining Functions", type: "theory", orderIndex: 0, xpReward: 10, estimatedMinutes: 6,
+    content: `# Defining Functions\n\n## Syntax\n\n\`\`\`cpp\nreturnType functionName(parameters) {\n    // body\n    return value;\n}\n\`\`\`\n\n## Examples\n\n\`\`\`cpp\nint add(int a, int b) {\n    return a + b;\n}\n\nvoid greet(string name) {\n    cout << "Hello, " << name << "!" << endl;\n}\n\`\`\`\n\n## Default Parameters\n\n\`\`\`cpp\nint power(int base, int exp = 2) {\n    int result = 1;\n    for (int i = 0; i < exp; i++) result *= base;\n    return result;\n}\n// power(3) returns 9\n// power(3, 3) returns 27\n\`\`\``,
+  });
+  await db.insert(lessonsTable).values({ moduleId: cppMod3.id, title: "Function Overloading", type: "theory", orderIndex: 1, xpReward: 10, estimatedMinutes: 5,
+    content: `# Function Overloading\n\nC++ allows multiple functions with the same name but different parameter lists.\n\n\`\`\`cpp\nint area(int side) {\n    return side * side;\n}\n\ndouble area(double length, double width) {\n    return length * width;\n}\n\ndouble area(double radius) {\n    return 3.14159 * radius * radius;\n}\n\`\`\`\n\n## Rules\n\n- Functions must differ by parameter count or types\n- Return type alone is not enough to distinguish\n- The compiler picks the best match at compile time`,
+  });
+  const [cppQ4] = await db.insert(lessonsTable).values({ moduleId: cppMod3.id, title: "Functions Quiz", type: "quiz", orderIndex: 2, xpReward: 15, estimatedMinutes: 5 }).returning();
+  await createQuiz(cppQ4.id, [
+    { question: "What does 'void' mean as a return type?", explanation: "void means the function doesn't return a value.", options: [{ text: "No return value", isCorrect: true }, { text: "Returns null", isCorrect: false }, { text: "Returns 0", isCorrect: false }, { text: "Returns empty string", isCorrect: false }] },
+    { question: "What is function overloading?", explanation: "Overloading means multiple functions with the same name but different parameters.", options: [{ text: "Same name, different parameters", isCorrect: true }, { text: "Same name, same parameters", isCorrect: false }, { text: "Different name, same parameters", isCorrect: false }, { text: "Calling a function multiple times", isCorrect: false }] },
+  ]);
+  await db.insert(lessonsTable).values({ moduleId: cppMod3.id, title: "References & Pointers Intro", type: "theory", orderIndex: 3, xpReward: 12, estimatedMinutes: 7,
+    content: `# References & Pointers\n\n## References\n\nA reference is an alias for an existing variable.\n\n\`\`\`cpp\nint x = 10;\nint& ref = x;  // ref is an alias for x\nref = 20;      // x is now 20\n\`\`\`\n\n## Pass by Reference\n\n\`\`\`cpp\nvoid doubleIt(int& n) {\n    n *= 2;\n}\nint val = 5;\ndoubleIt(val);  // val is now 10\n\`\`\`\n\n## Pointers\n\nA pointer stores a memory address.\n\n\`\`\`cpp\nint x = 42;\nint* ptr = &x;  // ptr holds address of x\ncout << *ptr;   // dereference: prints 42\n*ptr = 100;     // x is now 100\n\`\`\``,
+  });
+
+  const [cppMod4] = await db.insert(modulesTable).values({ courseId: cppCourse.id, title: "Arrays & Strings", description: "Working with collections of data", orderIndex: 3 }).returning();
+  await db.insert(lessonsTable).values({ moduleId: cppMod4.id, title: "Arrays", type: "theory", orderIndex: 0, xpReward: 10, estimatedMinutes: 6,
+    content: `# Arrays in C++\n\n## Declaration\n\n\`\`\`cpp\nint numbers[5] = {1, 2, 3, 4, 5};\nstring names[] = {"Alice", "Bob", "Charlie"};\n\`\`\`\n\n## Accessing Elements\n\n\`\`\`cpp\ncout << numbers[0];  // 1 (zero-indexed)\nnumbers[2] = 99;     // modify element\n\`\`\`\n\n## Iterating\n\n\`\`\`cpp\nfor (int i = 0; i < 5; i++) {\n    cout << numbers[i] << " ";\n}\n// or range-based:\nfor (int n : numbers) {\n    cout << n << " ";\n}\n\`\`\`\n\n## Multidimensional Arrays\n\n\`\`\`cpp\nint matrix[2][3] = {{1,2,3}, {4,5,6}};\ncout << matrix[1][2]; // 6\n\`\`\``,
+  });
+  await db.insert(lessonsTable).values({ moduleId: cppMod4.id, title: "Strings in C++", type: "theory", orderIndex: 1, xpReward: 10, estimatedMinutes: 6,
+    content: `# Strings in C++\n\n## std::string\n\n\`\`\`cpp\n#include <string>\nstring greeting = "Hello";\nstring name = "World";\nstring message = greeting + ", " + name + "!";\ncout << message; // Hello, World!\n\`\`\`\n\n## Useful Methods\n\n| Method | Description |\n|--------|------------|\n| .length() | String length |\n| .substr(pos, len) | Substring |\n| .find("text") | Find position |\n| .replace(pos, len, "new") | Replace |\n| .at(i) | Character at index |\n| .empty() | Is empty? |\n\n## String Input\n\n\`\`\`cpp\nstring line;\ngetline(cin, line); // read entire line\n\`\`\``,
+  });
+  const [cppQ5] = await db.insert(lessonsTable).values({ moduleId: cppMod4.id, title: "Arrays & Strings Quiz", type: "quiz", orderIndex: 2, xpReward: 15, estimatedMinutes: 5 }).returning();
+  await createQuiz(cppQ5.id, [
+    { question: "What is the index of the first element in a C++ array?", explanation: "C++ arrays are zero-indexed.", options: [{ text: "0", isCorrect: true }, { text: "1", isCorrect: false }, { text: "-1", isCorrect: false }, { text: "Depends on the array", isCorrect: false }] },
+    { question: "How do you get the length of a std::string?", explanation: ".length() or .size() returns string length.", options: [{ text: ".length()", isCorrect: true }, { text: ".len()", isCorrect: false }, { text: "strlen()", isCorrect: false }, { text: ".count()", isCorrect: false }] },
+  ]);
+
+  const [cppMod5] = await db.insert(modulesTable).values({ courseId: cppCourse.id, title: "OOP in C++", description: "Classes and object-oriented programming", orderIndex: 4 }).returning();
+  await db.insert(lessonsTable).values({ moduleId: cppMod5.id, title: "Classes & Objects", type: "theory", orderIndex: 0, xpReward: 12, estimatedMinutes: 7,
+    content: `# Classes & Objects\n\n## Defining a Class\n\n\`\`\`cpp\nclass Dog {\npublic:\n    string name;\n    int age;\n\n    void bark() {\n        cout << name << " says Woof!" << endl;\n    }\n};\n\`\`\`\n\n## Creating Objects\n\n\`\`\`cpp\nDog myDog;\nmyDog.name = "Rex";\nmyDog.age = 3;\nmyDog.bark(); // Rex says Woof!\n\`\`\`\n\n## Access Modifiers\n\n- \`public\` — accessible from anywhere\n- \`private\` — only accessible within the class\n- \`protected\` — accessible in class and subclasses`,
+  });
+  await db.insert(lessonsTable).values({ moduleId: cppMod5.id, title: "Constructors & Destructors", type: "theory", orderIndex: 1, xpReward: 12, estimatedMinutes: 7,
+    content: `# Constructors & Destructors\n\n## Constructor\n\nA constructor initializes an object when it's created.\n\n\`\`\`cpp\nclass Car {\npublic:\n    string brand;\n    int year;\n\n    Car(string b, int y) : brand(b), year(y) {}\n\n    void info() {\n        cout << year << " " << brand << endl;\n    }\n};\n\nCar myCar("Toyota", 2023);\nmyCar.info(); // 2023 Toyota\n\`\`\`\n\n## Destructor\n\n\`\`\`cpp\nclass File {\npublic:\n    File() { cout << "File opened" << endl; }\n    ~File() { cout << "File closed" << endl; }\n};\n\`\`\`\n\nThe destructor (\`~ClassName\`) is called when the object goes out of scope.`,
+  });
+  await db.insert(lessonsTable).values({ moduleId: cppMod5.id, title: "Inheritance", type: "theory", orderIndex: 2, xpReward: 12, estimatedMinutes: 7,
+    content: `# Inheritance\n\nInheritance lets a class derive from another.\n\n\`\`\`cpp\nclass Animal {\npublic:\n    string name;\n    void eat() { cout << name << " eats" << endl; }\n};\n\nclass Cat : public Animal {\npublic:\n    void meow() { cout << name << " says Meow!" << endl; }\n};\n\nCat c;\nc.name = "Whiskers";\nc.eat();   // Whiskers eats\nc.meow();  // Whiskers says Meow!\n\`\`\`\n\n## Virtual Functions & Polymorphism\n\n\`\`\`cpp\nclass Shape {\npublic:\n    virtual double area() = 0; // pure virtual\n};\n\nclass Circle : public Shape {\n    double radius;\npublic:\n    Circle(double r) : radius(r) {}\n    double area() override { return 3.14159 * radius * radius; }\n};\n\`\`\``,
+  });
+  const [cppQ6] = await db.insert(lessonsTable).values({ moduleId: cppMod5.id, title: "OOP Quiz", type: "quiz", orderIndex: 3, xpReward: 15, estimatedMinutes: 5 }).returning();
+  await createQuiz(cppQ6.id, [
+    { question: "What keyword makes a class member accessible only within the class?", explanation: "private restricts access to the class itself.", options: [{ text: "private", isCorrect: true }, { text: "public", isCorrect: false }, { text: "protected", isCorrect: false }, { text: "static", isCorrect: false }] },
+    { question: "What is a pure virtual function?", explanation: "A pure virtual function (= 0) has no implementation and must be overridden.", options: [{ text: "A function with = 0 that must be overridden", isCorrect: true }, { text: "A function that returns void", isCorrect: false }, { text: "A static function", isCorrect: false }, { text: "A private function", isCorrect: false }] },
+  ]);
+
+  await db.insert(lessonsTable).values({ moduleId: cppMod5.id, title: "STL Containers Overview", type: "theory", orderIndex: 4, xpReward: 12, estimatedMinutes: 7,
+    content: `# STL Containers\n\nThe Standard Template Library provides powerful container classes.\n\n## vector\n\n\`\`\`cpp\n#include <vector>\nvector<int> nums = {1, 2, 3};\nnums.push_back(4);\ncout << nums.size(); // 4\n\`\`\`\n\n## map\n\n\`\`\`cpp\n#include <map>\nmap<string, int> ages;\nages["Alice"] = 25;\nages["Bob"] = 30;\ncout << ages["Alice"]; // 25\n\`\`\`\n\n## set\n\n\`\`\`cpp\n#include <set>\nset<int> unique = {3, 1, 4, 1, 5};\n// contains: 1, 3, 4, 5 (sorted, no duplicates)\n\`\`\`\n\n## Common Operations\n\n| Container | Insert | Access | Search |\n|-----------|--------|--------|--------|\n| vector | O(1) amortized | O(1) | O(n) |\n| map | O(log n) | O(log n) | O(log n) |\n| set | O(log n) | — | O(log n) |`,
+  });
+
+  console.log("C++ course seeded (20 lessons)");
+  } // end of C++ block
+
+  // =============== JAVA COURSE ===============
+  if (!existingLanguages.has("java")) {
+  const [javaCourse] = await db.insert(coursesTable).values({
+    title: "Java Programming",
+    description: "Learn Java fundamentals — syntax, OOP, collections, exception handling, and more. Build robust, portable applications.",
+    language: "java", difficulty: "intermediate", totalLessons: 20, estimatedHours: 10, xpReward: 700, isPublished: true,
+  }).returning();
+
+  const [javaMod1] = await db.insert(modulesTable).values({ courseId: javaCourse.id, title: "Java Basics", description: "Getting started with Java", orderIndex: 0 }).returning();
+  await db.insert(lessonsTable).values({ moduleId: javaMod1.id, title: "Introduction to Java", type: "theory", orderIndex: 0, xpReward: 10, estimatedMinutes: 5,
+    content: `# Introduction to Java\n\nJava is a **class-based, object-oriented language** created by James Gosling at Sun Microsystems in 1995.\n\n## Why Java?\n\n- **Write Once, Run Anywhere**: Compiled to bytecode for the JVM\n- **Enterprise standard**: Powers banking, Android, big data\n- **Strong typing**: Catches errors at compile time\n\n## Hello World\n\n\`\`\`java\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}\n\`\`\`\n\n## Key Points\n\n- Every Java program needs a \`main\` method\n- \`System.out.println()\` prints output\n- File name must match the public class name\n- Statements end with semicolons`,
+  });
+  const [javaQ1] = await db.insert(lessonsTable).values({ moduleId: javaMod1.id, title: "Java Basics Quiz", type: "quiz", orderIndex: 1, xpReward: 15, estimatedMinutes: 5 }).returning();
+  await createQuiz(javaQ1.id, [
+    { question: "Who created Java?", explanation: "Java was created by James Gosling at Sun Microsystems.", options: [{ text: "James Gosling", isCorrect: true }, { text: "Bjarne Stroustrup", isCorrect: false }, { text: "Guido van Rossum", isCorrect: false }, { text: "Brendan Eich", isCorrect: false }] },
+    { question: "What is the entry point of a Java program?", explanation: "The main method is the entry point.", options: [{ text: "public static void main(String[] args)", isCorrect: true }, { text: "void start()", isCorrect: false }, { text: "function main()", isCorrect: false }, { text: "def main():", isCorrect: false }] },
+    { question: "What does JVM stand for?", explanation: "JVM = Java Virtual Machine.", options: [{ text: "Java Virtual Machine", isCorrect: true }, { text: "Java Version Manager", isCorrect: false }, { text: "Java Visual Monitor", isCorrect: false }, { text: "Java Variable Method", isCorrect: false }] },
+  ]);
+  await db.insert(lessonsTable).values({ moduleId: javaMod1.id, title: "Variables & Types", type: "theory", orderIndex: 2, xpReward: 10, estimatedMinutes: 6,
+    content: `# Variables & Types in Java\n\nJava is **statically typed** — each variable must have a declared type.\n\n## Primitive Types\n\n| Type | Size | Example |\n|------|------|---------|\n| int | 4 bytes | \`int x = 42;\` |\n| double | 8 bytes | \`double pi = 3.14;\` |\n| boolean | 1 bit | \`boolean ok = true;\` |\n| char | 2 bytes | \`char c = 'A';\` |\n| long | 8 bytes | \`long big = 999999999L;\` |\n\n## Reference Types\n\n\`\`\`java\nString name = "Java";\nint[] numbers = {1, 2, 3};\n\`\`\`\n\n## Type Casting\n\n\`\`\`java\nint x = (int) 3.7;  // explicit: x = 3\ndouble y = 5;       // implicit: y = 5.0\n\`\`\``,
+  });
+  const [javaQ2] = await db.insert(lessonsTable).values({ moduleId: javaMod1.id, title: "Variables Quiz", type: "quiz", orderIndex: 3, xpReward: 15, estimatedMinutes: 5 }).returning();
+  await createQuiz(javaQ2.id, [
+    { question: "Is String a primitive type in Java?", explanation: "String is a reference type (class), not a primitive.", options: [{ text: "No, it's a reference type", isCorrect: true }, { text: "Yes, it's a primitive", isCorrect: false }, { text: "It depends on the JVM", isCorrect: false }, { text: "Only in Java 8+", isCorrect: false }] },
+    { question: "What happens with: int x = (int) 3.9;", explanation: "Casting truncates (does not round).", options: [{ text: "x = 3", isCorrect: true }, { text: "x = 4", isCorrect: false }, { text: "Compile error", isCorrect: false }, { text: "x = 3.9", isCorrect: false }] },
+  ]);
+
+  const [javaMod2] = await db.insert(modulesTable).values({ courseId: javaCourse.id, title: "Control Flow", description: "Conditionals and loops in Java", orderIndex: 1 }).returning();
+  await db.insert(lessonsTable).values({ moduleId: javaMod2.id, title: "If/Else & Switch", type: "theory", orderIndex: 0, xpReward: 10, estimatedMinutes: 5,
+    content: `# If/Else & Switch\n\n## If/Else\n\n\`\`\`java\nint score = 85;\nif (score >= 90) {\n    System.out.println("A");\n} else if (score >= 80) {\n    System.out.println("B");\n} else {\n    System.out.println("C");\n}\n\`\`\`\n\n## Ternary Operator\n\n\`\`\`java\nString result = (score >= 60) ? "Pass" : "Fail";\n\`\`\`\n\n## Switch\n\n\`\`\`java\nint day = 3;\nswitch (day) {\n    case 1: System.out.println("Mon"); break;\n    case 2: System.out.println("Tue"); break;\n    case 3: System.out.println("Wed"); break;\n    default: System.out.println("Other");\n}\n\`\`\``,
+  });
+  await db.insert(lessonsTable).values({ moduleId: javaMod2.id, title: "Loops", type: "theory", orderIndex: 1, xpReward: 10, estimatedMinutes: 6,
+    content: `# Loops in Java\n\n## For Loop\n\n\`\`\`java\nfor (int i = 0; i < 5; i++) {\n    System.out.print(i + " ");\n}\n// Output: 0 1 2 3 4\n\`\`\`\n\n## While Loop\n\n\`\`\`java\nint n = 5;\nwhile (n > 0) {\n    System.out.print(n + " ");\n    n--;\n}\n\`\`\`\n\n## For-Each Loop\n\n\`\`\`java\nString[] fruits = {"apple", "banana", "cherry"};\nfor (String fruit : fruits) {\n    System.out.println(fruit);\n}\n\`\`\`\n\n## Break & Continue\n\n- \`break\` exits the loop entirely\n- \`continue\` skips to the next iteration`,
+  });
+  const [javaQ3] = await db.insert(lessonsTable).values({ moduleId: javaMod2.id, title: "Control Flow Quiz", type: "quiz", orderIndex: 2, xpReward: 15, estimatedMinutes: 5 }).returning();
+  await createQuiz(javaQ3.id, [
+    { question: "Which Java loop is best for iterating over an array?", explanation: "The for-each loop is designed for iterating collections and arrays.", options: [{ text: "for-each (enhanced for)", isCorrect: true }, { text: "do-while", isCorrect: false }, { text: "goto", isCorrect: false }, { text: "repeat", isCorrect: false }] },
+    { question: "What does 'break' do in a loop?", explanation: "break immediately exits the loop.", options: [{ text: "Exits the loop", isCorrect: true }, { text: "Skips to next iteration", isCorrect: false }, { text: "Restarts the loop", isCorrect: false }, { text: "Pauses the loop", isCorrect: false }] },
+  ]);
+  await db.insert(lessonsTable).values({ moduleId: javaMod2.id, title: "Exception Handling", type: "theory", orderIndex: 3, xpReward: 12, estimatedMinutes: 6,
+    content: `# Exception Handling\n\nJava uses try-catch blocks to handle runtime errors.\n\n## Syntax\n\n\`\`\`java\ntry {\n    int result = 10 / 0;\n} catch (ArithmeticException e) {\n    System.out.println("Cannot divide by zero!");\n} finally {\n    System.out.println("This always runs");\n}\n\`\`\`\n\n## Common Exceptions\n\n| Exception | Cause |\n|-----------|-------|\n| NullPointerException | Using null reference |\n| ArrayIndexOutOfBoundsException | Invalid array index |\n| ArithmeticException | Math error (div by 0) |\n| NumberFormatException | Invalid number parsing |\n\n## Throwing Exceptions\n\n\`\`\`java\nif (age < 0) {\n    throw new IllegalArgumentException("Age cannot be negative");\n}\n\`\`\``,
+  });
+
+  const [javaMod3] = await db.insert(modulesTable).values({ courseId: javaCourse.id, title: "Methods & Functions", description: "Defining and using methods", orderIndex: 2 }).returning();
+  await db.insert(lessonsTable).values({ moduleId: javaMod3.id, title: "Defining Methods", type: "theory", orderIndex: 0, xpReward: 10, estimatedMinutes: 6,
+    content: `# Defining Methods\n\n## Syntax\n\n\`\`\`java\naccessModifier returnType methodName(parameters) {\n    // body\n    return value;\n}\n\`\`\`\n\n## Examples\n\n\`\`\`java\npublic static int add(int a, int b) {\n    return a + b;\n}\n\npublic static void greet(String name) {\n    System.out.println("Hello, " + name);\n}\n\`\`\`\n\n## Method Overloading\n\n\`\`\`java\npublic static int multiply(int a, int b) {\n    return a * b;\n}\n\npublic static double multiply(double a, double b) {\n    return a * b;\n}\n\`\`\`\n\nJava picks the correct method based on argument types.`,
+  });
+  await db.insert(lessonsTable).values({ moduleId: javaMod3.id, title: "Scope & Static", type: "theory", orderIndex: 1, xpReward: 10, estimatedMinutes: 5,
+    content: `# Scope & Static\n\n## Variable Scope\n\nVariables are only accessible within their declared block.\n\n\`\`\`java\npublic void example() {\n    int x = 10; // local to this method\n    if (true) {\n        int y = 20; // local to this if-block\n    }\n    // y is NOT accessible here\n}\n\`\`\`\n\n## Static Members\n\nStatic members belong to the class, not instances.\n\n\`\`\`java\nclass Counter {\n    static int count = 0;\n\n    Counter() {\n        count++;\n    }\n\n    static int getCount() {\n        return count;\n    }\n}\n\`\`\``,
+  });
+  const [javaQ4] = await db.insert(lessonsTable).values({ moduleId: javaMod3.id, title: "Methods Quiz", type: "quiz", orderIndex: 2, xpReward: 15, estimatedMinutes: 5 }).returning();
+  await createQuiz(javaQ4.id, [
+    { question: "What keyword means a method belongs to the class rather than an instance?", explanation: "static methods belong to the class itself.", options: [{ text: "static", isCorrect: true }, { text: "final", isCorrect: false }, { text: "abstract", isCorrect: false }, { text: "public", isCorrect: false }] },
+    { question: "Can two methods have the same name in Java?", explanation: "Yes, through method overloading (different parameters).", options: [{ text: "Yes, with different parameters", isCorrect: true }, { text: "No, never", isCorrect: false }, { text: "Only in different classes", isCorrect: false }, { text: "Only if one is static", isCorrect: false }] },
+  ]);
+
+  const [javaMod4] = await db.insert(modulesTable).values({ courseId: javaCourse.id, title: "OOP in Java", description: "Classes, inheritance, interfaces", orderIndex: 3 }).returning();
+  await db.insert(lessonsTable).values({ moduleId: javaMod4.id, title: "Classes & Objects", type: "theory", orderIndex: 0, xpReward: 12, estimatedMinutes: 7,
+    content: `# Classes & Objects\n\n## Defining a Class\n\n\`\`\`java\npublic class Dog {\n    String name;\n    int age;\n\n    public Dog(String name, int age) {\n        this.name = name;\n        this.age = age;\n    }\n\n    public void bark() {\n        System.out.println(name + " says Woof!");\n    }\n}\n\`\`\`\n\n## Creating Objects\n\n\`\`\`java\nDog rex = new Dog("Rex", 3);\nrex.bark(); // Rex says Woof!\n\`\`\`\n\n## Encapsulation\n\n\`\`\`java\nprivate String name;\n\npublic String getName() { return name; }\npublic void setName(String name) { this.name = name; }\n\`\`\``,
+  });
+  await db.insert(lessonsTable).values({ moduleId: javaMod4.id, title: "Inheritance & Interfaces", type: "theory", orderIndex: 1, xpReward: 12, estimatedMinutes: 7,
+    content: `# Inheritance & Interfaces\n\n## Inheritance\n\n\`\`\`java\nclass Animal {\n    String name;\n    void eat() { System.out.println(name + " eats"); }\n}\n\nclass Cat extends Animal {\n    void meow() { System.out.println(name + " says Meow!"); }\n}\n\`\`\`\n\n## Interfaces\n\nAn interface defines a contract that classes must implement.\n\n\`\`\`java\ninterface Drawable {\n    void draw();\n}\n\nclass Circle implements Drawable {\n    public void draw() {\n        System.out.println("Drawing circle");\n    }\n}\n\`\`\`\n\n## Key Differences\n\n- \`extends\` for class inheritance (single)\n- \`implements\` for interfaces (multiple)\n- Interfaces can have default methods (Java 8+)`,
+  });
+  const [javaQ5] = await db.insert(lessonsTable).values({ moduleId: javaMod4.id, title: "OOP Quiz", type: "quiz", orderIndex: 2, xpReward: 15, estimatedMinutes: 5 }).returning();
+  await createQuiz(javaQ5.id, [
+    { question: "What keyword is used for inheritance in Java?", explanation: "extends is used for class inheritance.", options: [{ text: "extends", isCorrect: true }, { text: "inherits", isCorrect: false }, { text: "implements", isCorrect: false }, { text: "derives", isCorrect: false }] },
+    { question: "Can a Java class implement multiple interfaces?", explanation: "Yes, a class can implement multiple interfaces.", options: [{ text: "Yes", isCorrect: true }, { text: "No", isCorrect: false }, { text: "Only in Java 8+", isCorrect: false }, { text: "Only if they have no methods", isCorrect: false }] },
+  ]);
+  await db.insert(lessonsTable).values({ moduleId: javaMod4.id, title: "Abstract Classes", type: "theory", orderIndex: 3, xpReward: 12, estimatedMinutes: 6,
+    content: `# Abstract Classes\n\nAn abstract class cannot be instantiated directly. It can have both abstract and concrete methods.\n\n\`\`\`java\nabstract class Shape {\n    String color;\n\n    Shape(String color) {\n        this.color = color;\n    }\n\n    abstract double area(); // must be implemented\n\n    void describe() { // concrete method\n        System.out.println("A " + color + " shape");\n    }\n}\n\nclass Circle extends Shape {\n    double radius;\n\n    Circle(String color, double radius) {\n        super(color);\n        this.radius = radius;\n    }\n\n    double area() {\n        return Math.PI * radius * radius;\n    }\n}\n\`\`\`\n\n## Abstract vs Interface\n\n- Abstract classes can have constructors and fields\n- Interfaces define only contracts (pre-Java 8)\n- Use abstract when classes share state; interfaces for capabilities`,
+  });
+
+  const [javaMod5] = await db.insert(modulesTable).values({ courseId: javaCourse.id, title: "Collections & Generics", description: "ArrayList, HashMap, and generics", orderIndex: 4 }).returning();
+  await db.insert(lessonsTable).values({ moduleId: javaMod5.id, title: "ArrayList", type: "theory", orderIndex: 0, xpReward: 10, estimatedMinutes: 6,
+    content: `# ArrayList\n\nArrayList is a resizable array from java.util.\n\n\`\`\`java\nimport java.util.ArrayList;\n\nArrayList<String> names = new ArrayList<>();\nnames.add("Alice");\nnames.add("Bob");\nnames.add("Charlie");\n\nSystem.out.println(names.get(0)); // Alice\nnames.remove(1); // remove Bob\nSystem.out.println(names.size()); // 2\n\`\`\`\n\n## Useful Methods\n\n| Method | Description |\n|--------|------------|\n| .add(item) | Add element |\n| .get(index) | Get element |\n| .set(index, item) | Replace element |\n| .remove(index) | Remove element |\n| .size() | Number of elements |\n| .contains(item) | Check if exists |\n| .clear() | Remove all |`,
+  });
+  await db.insert(lessonsTable).values({ moduleId: javaMod5.id, title: "HashMap", type: "theory", orderIndex: 1, xpReward: 10, estimatedMinutes: 6,
+    content: `# HashMap\n\nHashMap stores key-value pairs.\n\n\`\`\`java\nimport java.util.HashMap;\n\nHashMap<String, Integer> ages = new HashMap<>();\nages.put("Alice", 25);\nages.put("Bob", 30);\n\nSystem.out.println(ages.get("Alice")); // 25\nSystem.out.println(ages.containsKey("Bob")); // true\n\n// Iterate\nfor (String key : ages.keySet()) {\n    System.out.println(key + ": " + ages.get(key));\n}\n\`\`\`\n\n## Common Methods\n\n| Method | Description |\n|--------|------------|\n| .put(key, value) | Add/update entry |\n| .get(key) | Get value |\n| .remove(key) | Remove entry |\n| .containsKey(key) | Check key |\n| .keySet() | All keys |\n| .values() | All values |`,
+  });
+  const [javaQ6] = await db.insert(lessonsTable).values({ moduleId: javaMod5.id, title: "Collections Quiz", type: "quiz", orderIndex: 2, xpReward: 15, estimatedMinutes: 5 }).returning();
+  await createQuiz(javaQ6.id, [
+    { question: "What is ArrayList<String> an example of?", explanation: "It uses generics to specify the element type.", options: [{ text: "Generics", isCorrect: true }, { text: "Inheritance", isCorrect: false }, { text: "Polymorphism", isCorrect: false }, { text: "Encapsulation", isCorrect: false }] },
+    { question: "Which collection stores key-value pairs?", explanation: "HashMap stores key-value pairs.", options: [{ text: "HashMap", isCorrect: true }, { text: "ArrayList", isCorrect: false }, { text: "HashSet", isCorrect: false }, { text: "LinkedList", isCorrect: false }] },
+  ]);
+  await db.insert(lessonsTable).values({ moduleId: javaMod5.id, title: "Generics Basics", type: "theory", orderIndex: 3, xpReward: 12, estimatedMinutes: 6,
+    content: `# Generics\n\nGenerics allow you to write type-safe, reusable code.\n\n\`\`\`java\npublic class Box<T> {\n    private T content;\n\n    public void set(T item) { this.content = item; }\n    public T get() { return content; }\n}\n\nBox<String> strBox = new Box<>();\nstrBox.set("Hello");\nString val = strBox.get(); // no cast needed\n\nBox<Integer> intBox = new Box<>();\nintBox.set(42);\nint num = intBox.get();\n\`\`\`\n\n## Generic Methods\n\n\`\`\`java\npublic static <T> void printArray(T[] arr) {\n    for (T item : arr) {\n        System.out.print(item + " ");\n    }\n}\n\`\`\`\n\n## Bounded Types\n\n\`\`\`java\npublic static <T extends Comparable<T>> T max(T a, T b) {\n    return (a.compareTo(b) > 0) ? a : b;\n}\n\`\`\``,
+  });
+
+  await db.insert(lessonsTable).values({ moduleId: javaMod5.id, title: "Iterators & Streams", type: "theory", orderIndex: 4, xpReward: 12, estimatedMinutes: 7,
+    content: `# Iterators & Streams\n\n## Iterator\n\nIterators traverse collections element by element.\n\n\`\`\`java\nimport java.util.*;\n\nArrayList<String> names = new ArrayList<>(Arrays.asList("Alice", "Bob", "Charlie"));\nIterator<String> it = names.iterator();\nwhile (it.hasNext()) {\n    System.out.println(it.next());\n}\n\`\`\`\n\n## Streams (Java 8+)\n\nStreams provide functional-style operations on collections.\n\n\`\`\`java\nList<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5, 6);\n\n// Filter even numbers and double them\nnumbers.stream()\n    .filter(n -> n % 2 == 0)\n    .map(n -> n * 2)\n    .forEach(System.out::println);\n// Output: 4 8 12\n\`\`\`\n\n## Common Stream Operations\n\n| Method | Description |\n|--------|------------|\n| .filter() | Keep matching elements |\n| .map() | Transform elements |\n| .reduce() | Combine into single result |\n| .collect() | Gather into a collection |\n| .sorted() | Sort elements |\n| .count() | Count elements |`,
+  });
+
+  console.log("Java course seeded (20 lessons)");
+  } // end of Java block
 
   console.log("Seeding complete!");
 }

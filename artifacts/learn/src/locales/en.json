@@ -120,7 +120,17 @@
   "profile": {
     "title": "Profile",
     "stats": "Statistics",
-    "courseProgress": "Course Progress"
+    "courseProgress": "Course Progress",
+    "editProfile": "Edit Profile",
+    "settings": "Profile Settings",
+    "displayName": "Display Name",
+    "avatarUrl": "Avatar URL",
+    "avatarPreview": "Avatar preview",
+    "language": "Language",
+    "saved": "Profile saved!",
+    "joined": "Joined",
+    "keepLearning": "Keep learning to level up!",
+    "noCourses": "You haven't started any courses yet."
   },
   "achievements": {
     "title": "Achievements",

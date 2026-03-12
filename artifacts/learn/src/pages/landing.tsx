@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useLogin, useRegister, useGetMe } from "@workspace/api-client-react";
 import { setToken } from "@/lib/auth";
-import { Code2, Trophy, Zap, Terminal, ArrowRight, Sparkles, Play, Users, Star, BookOpen, Moon, Sun, Globe } from "lucide-react";
+import { Code2, Trophy, Zap, Terminal, ArrowRight, Sparkles, Play, Users, Star, BookOpen, Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export default function Landing() {
@@ -140,9 +140,9 @@ export default function Landing() {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={toggleLanguage}
-              className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-colors duration-300 flex items-center gap-1"
+              className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-colors duration-300 flex items-center gap-1.5"
             >
-              <Globe className="w-[18px] h-[18px]" />
+              <span className="text-base leading-none">{i18n.language === "ru" ? "🇷🇺" : "🇬🇧"}</span>
               <span className="text-xs font-bold uppercase">{i18n.language === "ru" ? "RU" : "EN"}</span>
             </motion.button>
             <motion.button 

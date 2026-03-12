@@ -25,8 +25,7 @@ import {
   Menu,
   Moon,
   Sun,
-  Sparkles,
-  Globe
+  Sparkles
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -130,10 +129,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={toggleLanguage}
-              className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-colors duration-300 flex items-center gap-1"
+              className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-colors duration-300 flex items-center gap-1.5"
               title={i18n.language === "ru" ? "Switch to English" : "Переключить на русский"}
             >
-              <Globe className="w-[18px] h-[18px]" />
+              <span className="text-base leading-none">{i18n.language === "ru" ? "🇷🇺" : "🇬🇧"}</span>
               <span className="text-xs font-bold uppercase">{i18n.language === "ru" ? "RU" : "EN"}</span>
             </motion.button>
             <motion.button 

@@ -111,9 +111,13 @@ router.get("/lessons/:lessonId", authMiddleware, async (req, res): Promise<void>
     }
   }
 
+  const [mod] = await db.select().from(modulesTable)
+    .where(eq(modulesTable.id, lesson.moduleId));
+
   res.json(GetLessonResponse.parse({
     id: lesson.id,
     moduleId: lesson.moduleId,
+    courseId: mod?.courseId ?? null,
     title: lesson.title,
     type: lesson.type,
     orderIndex: lesson.orderIndex,

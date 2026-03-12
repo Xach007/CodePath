@@ -19,8 +19,8 @@ const CODE_FRAGMENTS = [
 ];
 
 const STATS = [
-  { value: "5", label: "Languages" },
-  { value: "81", label: "Lessons" },
+  { value: "7", label: "Languages" },
+  { value: "121", label: "Lessons" },
   { value: "∞", label: "Practice" },
 ];
 

@@ -70,29 +70,19 @@ function Router() {
   );
 }
 
-const INTRO_STORAGE_KEY = "codepath-intro-shown";
-
-function getStorageFlag(key: string): boolean {
-  try {
-    return !!localStorage.getItem(key);
-  } catch {
-    return false;
-  }
-}
-
-function setStorageFlag(key: string): void {
-  try {
-    localStorage.setItem(key, "1");
-  } catch {}
-}
+const INTRO_SESSION_KEY = "codepath-intro-shown";
 
 function App() {
   const [showIntro, setShowIntro] = useState(() => {
-    return !getStorageFlag(INTRO_STORAGE_KEY);
+    try {
+      return !sessionStorage.getItem(INTRO_SESSION_KEY);
+    } catch {
+      return false;
+    }
   });
 
   const handleIntroComplete = useCallback(() => {
-    setStorageFlag(INTRO_STORAGE_KEY);
+    try { sessionStorage.setItem(INTRO_SESSION_KEY, "1"); } catch {}
     setShowIntro(false);
   }, []);
 

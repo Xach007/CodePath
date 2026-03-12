@@ -717,7 +717,13 @@ export default function Lesson() {
       <div className="min-h-screen bg-background flex flex-col">
         <header className="h-16 border-b border-border/50 flex items-center px-5 justify-between bg-card z-10 relative">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="rounded-xl hover:bg-muted">
+            <Button variant="ghost" size="icon" onClick={() => {
+              if (lesson.courseId) {
+                setLocation(`/courses/${lesson.courseId}`);
+              } else {
+                setLocation('/courses');
+              }
+            }} className="rounded-xl hover:bg-muted">
               <X className="w-5 h-5" />
             </Button>
             <div className="flex-1 max-w-xs">
