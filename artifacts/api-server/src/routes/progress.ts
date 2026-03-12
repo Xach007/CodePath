@@ -128,6 +128,7 @@ router.get("/progress/course/:courseId", authMiddleware, async (req, res): Promi
     totalLessons: lessonIds.length,
     percentComplete,
     xpEarned,
+    completedLessonIds: completedInCourse.map(p => p.lessonId),
     startedAt: enrollment?.startedAt?.toISOString() ?? null,
     completedAt: enrollment?.completedAt?.toISOString() ?? null,
   }));

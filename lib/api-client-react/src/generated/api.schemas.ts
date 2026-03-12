@@ -231,6 +231,7 @@ export interface CourseProgress {
   totalLessons: number;
   percentComplete: number;
   xpEarned: number;
+  completedLessonIds?: number[];
   /** @nullable */
   startedAt?: string | null;
   /** @nullable */

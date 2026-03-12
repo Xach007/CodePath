@@ -35,6 +35,7 @@ export default function CourseDetail() {
     return <div className="text-center py-20 text-xl font-bold">Course not found</div>;
   }
 
+  const completedIds = new Set(progress?.completedLessonIds || []);
   const allLessons: { id: number; index: number }[] = [];
   let nextLessonId: number | null = null;
   if (course.modules) {
@@ -43,10 +44,15 @@ export default function CourseDetail() {
       if (module.lessons) {
         for (const lesson of module.lessons) {
           allLessons.push({ id: lesson.id, index: flatIndex });
-          if (!nextLessonId) nextLessonId = lesson.id;
+          if (!nextLessonId && !completedIds.has(lesson.id)) {
+            nextLessonId = lesson.id;
+          }
           flatIndex++;
         }
       }
+    }
+    if (!nextLessonId && allLessons.length > 0) {
+      nextLessonId = allLessons[0].id;
     }
   }
 

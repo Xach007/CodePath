@@ -339,6 +339,7 @@ export const GetCourseProgressResponse = zod.object({
   totalLessons: zod.number(),
   percentComplete: zod.number(),
   xpEarned: zod.number(),
+  completedLessonIds: zod.array(zod.number()).optional(),
   startedAt: zod.coerce.date().nullish(),
   completedAt: zod.coerce.date().nullish(),
 });
