@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
+import { CodePathLogoIcon } from "@/components/codepath-logo";
 
 const CODE_FRAGMENTS = [
   { text: "import", color: "#c678dd", x: -120, y: -80 },
@@ -227,30 +228,11 @@ export function IntroAnimation({ onComplete }: { onComplete: () => void }) {
                     animate={{ scale: 1, opacity: 1, rotate: 0 }}
                     transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                     style={{
-                      width: "clamp(56px, 8vw, 80px)",
-                      height: "clamp(56px, 8vw, 80px)",
-                      borderRadius: "clamp(14px, 2vw, 22px)",
-                      background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: "0 0 80px rgba(99, 102, 241, 0.4), 0 0 160px rgba(139, 92, 246, 0.15), 0 20px 60px rgba(0,0,0,0.5)",
                       marginBottom: "clamp(16px, 2vw, 28px)",
+                      filter: "drop-shadow(0 0 80px rgba(99, 102, 241, 0.4)) drop-shadow(0 20px 60px rgba(0,0,0,0.5))",
                     }}
                   >
-                    <svg
-                      width="clamp(28px, 4vw, 40px)"
-                      height="clamp(28px, 4vw, 40px)"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="16 18 22 12 16 6" />
-                      <polyline points="8 6 2 12 8 18" />
-                    </svg>
+                    <CodePathLogoIcon size={80} className="rounded-[clamp(14px,2vw,22px)]" style={{ width: "clamp(56px, 8vw, 80px)", height: "clamp(56px, 8vw, 80px)" }} />
                   </motion.div>
 
                   <div style={{ overflow: "hidden" }}>

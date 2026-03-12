@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { CodePathLogo } from "@/components/codepath-logo";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -126,9 +127,7 @@ export default function Landing() {
       <nav className="fixed top-0 left-0 right-0 z-50 glass">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-[hsl(280,80%,60%)] flex items-center justify-center text-white font-bold font-display text-lg shadow-lg shadow-primary/25">
-              C
-            </div>
+            <CodePathLogo size={36} className="shadow-lg shadow-primary/25 rounded-xl" />
             <span className="font-display font-bold text-lg tracking-tight">CodePath</span>
           </div>
           <div className="flex items-center gap-2">
@@ -454,9 +453,7 @@ export default function Landing() {
       <footer className="border-t border-border/50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-[hsl(280,80%,60%)] flex items-center justify-center text-white font-bold font-display text-xs">
-              C
-            </div>
+            <CodePathLogo size={28} className="rounded-lg" />
             <span className="font-display font-semibold text-sm">CodePath</span>
           </div>
           <p className="text-xs text-muted-foreground">Built with passion for learning.</p>

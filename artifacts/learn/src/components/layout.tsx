@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { CodePathLogo } from "@/components/codepath-logo";
 import { useGetMe, useGetGamificationProfile, useLogout, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { removeToken } from "@/lib/auth";
@@ -83,10 +84,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group">
-              <div className="relative">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-[hsl(280,80%,60%)] flex items-center justify-center text-white font-bold font-display text-lg shadow-lg shadow-primary/25 group-hover:shadow-primary/40 group-hover:scale-110 transition-all duration-300">
-                  C
-                </div>
+              <div className="relative group-hover:scale-110 transition-all duration-300">
+                <CodePathLogo size={36} className="shadow-lg shadow-primary/25 group-hover:shadow-primary/40 rounded-xl" />
                 <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-accent rounded-full border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               <span className="font-display font-bold text-lg tracking-tight hidden sm:block">CodePath</span>
