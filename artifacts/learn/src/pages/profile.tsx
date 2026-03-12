@@ -21,7 +21,7 @@ export default function Profile() {
   const { data: user, isLoading: isLoadingUser } = useGetMe();
   const { data: progress, isLoading: isLoadingProgress } = useGetUserProgress();
   const { data: gamification, isLoading: isLoadingGame } = useGetGamificationProfile();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
   const isLoading = isLoadingUser || isLoadingProgress || isLoadingGame;
 
@@ -36,7 +36,7 @@ export default function Profile() {
 
   if (!user || !gamification) return null;
 
-  const joinDate = new Date(user.createdAt).toLocaleDateString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' });
+  const joinDate = new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
     <motion.div 
