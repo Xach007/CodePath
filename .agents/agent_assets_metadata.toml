@@ -24,3 +24,9 @@ id = "NuNoSXLjyQXqaE97Vq-n-"
 uri = "file://CodePath_UseCase.png"
 type = "image"
 title = "Диаграмма вариантов использования (Use Case) — CodePath"
+
+[[outputs]]
+id = "ubfvQfILdnMJNZPe_poZO"
+uri = "file://attached_assets/CodePath_Пояснительная_записка.docx"
+type = "word_document"
+title = "CodePath — Пояснительная записка (.docx)"
