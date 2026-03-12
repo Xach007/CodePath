@@ -1,5 +1,6 @@
 import app from "./app";
 import { seedAdminAccount, printAdminCredentials } from "./lib/seedAdmin";
+import { seedData } from "./lib/seedData";
 
 const rawPort = process.env["PORT"];
 
@@ -26,5 +27,11 @@ app.listen(port, async () => {
     printAdminCredentials();
   } catch (err) {
     console.error("Failed to seed admin account:", err);
+  }
+
+  try {
+    await seedData();
+  } catch (err) {
+    console.error("Failed to seed data:", err);
   }
 });
