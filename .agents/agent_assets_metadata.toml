@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "kFDDtmrVQzIFuMEon2MOC"
+uri = "file://CodePath_Пояснительная_записка.md"
+type = "text"
+title = "Пояснительная записка - CodePath"
