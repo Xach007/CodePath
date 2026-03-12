@@ -18,3 +18,9 @@ id = "pNPI06vCzXnzXwWRAlS6e"
 uri = "file://CodePath_IDEF0.png"
 type = "image"
 title = "Контекстная диаграмма IDEF0 — CodePath"
+
+[[outputs]]
+id = "NuNoSXLjyQXqaE97Vq-n-"
+uri = "file://CodePath_UseCase.png"
+type = "image"
+title = "Диаграмма вариантов использования (Use Case) — CodePath"
