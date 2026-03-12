@@ -45,10 +45,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
   
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark') || 
-             localStorage.getItem('theme') === 'dark';
+      const saved = localStorage.getItem('theme');
+      if (saved) return saved === 'dark';
+      return true;
     }
-    return false;
+    return true;
   });
 
   useEffect(() => {
