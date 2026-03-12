@@ -254,7 +254,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 pb-16 md:pb-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={location}
@@ -267,6 +267,28 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {user && (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden glass border-t border-border/50">
+          <div className="flex items-center justify-around h-16 px-2">
+            {navLinks.map((link) => {
+              const isActive = location === link.href || (link.href !== "/dashboard" && location.startsWith(link.href));
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1"
+                >
+                  <link.icon className={`w-5 h-5 transition-colors duration-300 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+                  <span className={`text-[10px] font-medium transition-colors duration-300 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+                    {link.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </div>
   );
 }
