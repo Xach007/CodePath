@@ -12,3 +12,9 @@ id = "p66RB92NBfplZ4sQGjP_N"
 uri = "file://CodePath_Пояснительная_записка.docx"
 type = "word_document"
 title = "Пояснительная записка CodePath с рамками, штампом и гиперссылками (.docx)"
+
+[[outputs]]
+id = "pNPI06vCzXnzXwWRAlS6e"
+uri = "file://CodePath_IDEF0.png"
+type = "image"
+title = "Контекстная диаграмма IDEF0 — CodePath"
