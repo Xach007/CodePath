@@ -96,31 +96,7 @@ router.post("/auth/logout", (_req, res): void => {
   res.json({ success: true });
 });
 
-router.patch("/auth/profile", authMiddleware, async (req, res): Promise<void> => {
-  const userId = getAuthUserId(req);
-  const { displayName, avatarUrl } = req.body || {};
 
-  const updates: Record<string, any> = {};
-  if (typeof displayName === "string" && displayName.trim()) updates.displayName = displayName.trim();
-  if (typeof avatarUrl === "string") updates.avatarUrl = avatarUrl.trim() || null;
-
-  if (Object.keys(updates).length === 0) {
-    res.status(400).json({ error: "No valid fields to update" });
-    return;
-  }
-
-  await db.update(usersTable).set(updates).where(eq(usersTable.id, userId));
-
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-  res.json(GetMeResponse.parse({
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
-    createdAt: user.createdAt,
-  }));
-});
 
 router.get("/auth/me", authMiddleware, async (req, res): Promise<void> => {
   const userId = getAuthUserId(req);

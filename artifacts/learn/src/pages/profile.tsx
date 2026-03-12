@@ -1,18 +1,11 @@
-import { useState } from "react";
-import { useGetMe, useGetUserProgress, useGetGamificationProfile, getGetMeQueryKey } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useGetMe, useGetUserProgress, useGetGamificationProfile } from "@workspace/api-client-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Calendar, Flame, Star, Trophy, BookOpen, Settings, Save, X } from "lucide-react";
+import { Calendar, Flame, Star, Trophy, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { getToken } from "@/lib/auth";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -28,13 +21,7 @@ export default function Profile() {
   const { data: user, isLoading: isLoadingUser } = useGetMe();
   const { data: progress, isLoading: isLoadingProgress } = useGetUserProgress();
   const { data: gamification, isLoading: isLoadingGame } = useGetGamificationProfile();
-  const queryClient = useQueryClient();
   const { t, i18n } = useTranslation();
-
-  const [showSettings, setShowSettings] = useState(false);
-  const [editName, setEditName] = useState("");
-  const [editAvatar, setEditAvatar] = useState("");
-  const [saving, setSaving] = useState(false);
 
   const isLoading = isLoadingUser || isLoadingProgress || isLoadingGame;
 
@@ -50,40 +37,6 @@ export default function Profile() {
   if (!user || !gamification) return null;
 
   const joinDate = new Date(user.createdAt).toLocaleDateString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', { month: 'long', year: 'numeric' });
-
-  const handleOpenSettings = () => {
-    setEditName(user.displayName || user.username);
-    setEditAvatar(user.avatarUrl || "");
-    setShowSettings(true);
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const token = getToken();
-      const base = import.meta.env.BASE_URL || "/";
-      const res = await fetch(`${base}api/auth/profile`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ displayName: editName, avatarUrl: editAvatar }),
-      });
-      if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-        toast.success(t("profile.saved"));
-        setShowSettings(false);
-      } else {
-        toast.error(t("common.error"));
-      }
-    } catch {
-      toast.error(t("common.error"));
-    }
-    setSaving(false);
-  };
-
-  const toggleLanguage = () => {
-    const newLang = i18n.language === "ru" ? "en" : "ru";
-    i18n.changeLanguage(newLang);
-  };
 
   return (
     <motion.div 
@@ -103,71 +56,15 @@ export default function Profile() {
               </AvatarFallback>
             </Avatar>
             
-            <div className="pt-14 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <h1 className="text-2xl font-display font-bold">{user.displayName || user.username}</h1>
-                <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                  @{user.username} <span className="opacity-30">·</span> <Calendar className="w-3.5 h-3.5" /> {t("profile.joined")} {joinDate}
-                </p>
-              </div>
-              <Button variant="outline" size="sm" className="rounded-xl gap-2" onClick={handleOpenSettings}>
-                <Settings className="w-4 h-4" />
-                {t("profile.editProfile")}
-              </Button>
+            <div className="pt-14">
+              <h1 className="text-2xl font-display font-bold">{user.displayName || user.username}</h1>
+              <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
+                @{user.username} <span className="opacity-30">·</span> <Calendar className="w-3.5 h-3.5" /> {t("profile.joined")} {joinDate}
+              </p>
             </div>
           </div>
         </Card>
       </motion.div>
-
-      {showSettings && (
-        <motion.div variants={fadeUp} initial="hidden" animate="show">
-          <Card className="rounded-3xl border-border/50 shadow-sm">
-            <CardContent className="p-7">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-display font-bold text-lg">{t("profile.settings")}</h3>
-                <Button variant="ghost" size="icon" onClick={() => setShowSettings(false)} className="rounded-xl">
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <Label>{t("profile.displayName")}</Label>
-                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="rounded-xl" placeholder={t("profile.displayName")} />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("profile.avatarUrl")}</Label>
-                  <Input value={editAvatar} onChange={(e) => setEditAvatar(e.target.value)} className="rounded-xl" placeholder="https://..." />
-                  {editAvatar && (
-                    <div className="flex items-center gap-3 mt-2">
-                      <Avatar className="w-12 h-12">
-                        <AvatarImage src={editAvatar} />
-                        <AvatarFallback>?</AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs text-muted-foreground">{t("profile.avatarPreview")}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("profile.language")}</Label>
-                  <Button variant="outline" className="rounded-xl gap-2 w-full justify-start" onClick={toggleLanguage}>
-                    <span className="text-base">{i18n.language === "ru" ? "🇷🇺" : "🇬🇧"}</span>
-                    {i18n.language === "ru" ? "Русский" : "English"}
-                  </Button>
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <Button onClick={handleSave} disabled={saving} className="rounded-xl gap-2">
-                    <Save className="w-4 h-4" />
-                    {saving ? t("common.loading") : t("common.save")}
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowSettings(false)} className="rounded-xl">
-                    {t("common.cancel")}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
 
       <div className="grid md:grid-cols-3 gap-6">
         <motion.div variants={fadeUp} className="space-y-6">
