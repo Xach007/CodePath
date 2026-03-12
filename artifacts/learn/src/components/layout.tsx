@@ -70,11 +70,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
     window.location.href = "/";
   };
 
-  const toggleLanguage = () => {
-    const newLang = i18n.language === "ru" ? "en" : "ru";
-    i18n.changeLanguage(newLang);
-  };
-
   const navLinks = [
     { href: "/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
     { href: "/courses", label: t("nav.courses"), icon: BookOpen },
@@ -126,15 +121,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={toggleLanguage}
-              className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-colors duration-300 flex items-center gap-1.5"
-              title={i18n.language === "ru" ? "Switch to English" : "Переключить на русский"}
-            >
-              <span className="text-base leading-none">{i18n.language === "ru" ? "🇷🇺" : "🇬🇧"}</span>
-              <span className="text-xs font-bold uppercase">{i18n.language === "ru" ? "RU" : "EN"}</span>
-            </motion.button>
             <motion.button 
               whileTap={{ scale: 0.9, rotate: 15 }}
               onClick={() => setIsDark(!isDark)}

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { motion, useScroll, useTransform, useMotionValueEvent } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,118 +9,6 @@ import { useLogin, useRegister, useGetMe } from "@workspace/api-client-react";
 import { setToken } from "@/lib/auth";
 import { Code2, Trophy, Zap, Terminal, ArrowRight, Sparkles, Play, Users, Star, BookOpen, Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
-
-const CODE_LINES = [
-  { tokens: [{ text: "import", color: "text-purple-400" }, { text: " { learn }", color: "text-foreground" }, { text: " from", color: "text-purple-400" }, { text: ' "@codepath"', color: "text-emerald-400" }] },
-  { tokens: [{ text: "import", color: "text-purple-400" }, { text: " { streak, xp }", color: "text-foreground" }, { text: " from", color: "text-purple-400" }, { text: ' "@codepath/gamification"', color: "text-emerald-400" }] },
-  { tokens: [] },
-  { tokens: [{ text: "const", color: "text-purple-400" }, { text: " student", color: "text-blue-400" }, { text: " = ", color: "text-foreground" }, { text: "learn", color: "text-yellow-400" }, { text: "({", color: "text-foreground" }] },
-  { tokens: [{ text: "  courses:", color: "text-foreground" }, { text: ' ["Python", "JavaScript", "C++"]', color: "text-emerald-400" }, { text: ",", color: "text-foreground" }] },
-  { tokens: [{ text: "  mode:", color: "text-foreground" }, { text: ' "interactive"', color: "text-emerald-400" }, { text: ",", color: "text-foreground" }] },
-  { tokens: [{ text: "  streak:", color: "text-foreground" }, { text: " streak", color: "text-yellow-400" }, { text: ".keep()", color: "text-blue-400" }, { text: ",", color: "text-foreground" }] },
-  { tokens: [{ text: "})", color: "text-foreground" }] },
-  { tokens: [] },
-  { tokens: [{ text: "await", color: "text-purple-400" }, { text: " student", color: "text-blue-400" }, { text: ".complete", color: "text-yellow-400" }, { text: "(lesson)", color: "text-foreground" }] },
-  { tokens: [{ text: "// ", color: "text-muted-foreground" }, { text: "✨ +25 XP earned!", color: "text-emerald-400" }] },
-  { tokens: [{ text: "// ", color: "text-muted-foreground" }, { text: "🔥 7-day streak!", color: "text-accent" }] },
-];
-
-function ScrollCodeTyping() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "end start"],
-  });
-
-  const [visibleChars, setVisibleChars] = useState(0);
-
-  const totalChars = CODE_LINES.reduce((sum, line) => {
-    return sum + line.tokens.reduce((s, t) => s + t.text.length, 0) + 1;
-  }, 0);
-
-  useMotionValueEvent(scrollYProgress, "change", (v) => {
-    const typingProgress = Math.min(1, Math.max(0, (v - 0.05) / 0.55));
-    setVisibleChars(Math.floor(typingProgress * totalChars));
-  });
-
-  let charCount = 0;
-
-  const renderedLines = CODE_LINES.map((line, lineIdx) => {
-    const lineTokens = line.tokens.map((token, tokenIdx) => {
-      const chars = token.text.split("").map((char, ci) => {
-        charCount++;
-        const visible = charCount <= visibleChars;
-        return visible ? (
-          <span key={ci} className={token.color}>{char}</span>
-        ) : null;
-      });
-      return <span key={tokenIdx}>{chars}</span>;
-    });
-
-    charCount++;
-
-    return (
-      <div key={lineIdx} className="h-[1.7em]">
-        {lineTokens}
-        {charCount <= visibleChars + 1 && line.tokens.length === 0 && <span>&nbsp;</span>}
-      </div>
-    );
-  });
-
-  const showCursor = visibleChars < totalChars;
-  const progressPercent = Math.min(100, Math.max(0, (visibleChars / totalChars) * 100));
-
-  return (
-    <section ref={sectionRef} className="relative py-12 lg:py-16">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative">
-          <div className="absolute -inset-6 bg-gradient-to-r from-primary/10 via-[hsl(280,80%,60%)]/8 to-accent/10 blur-[60px] -z-10 rounded-full" />
-          <div className="relative bg-[hsl(220,20%,8%)] dark:bg-[hsl(220,20%,6%)] rounded-3xl border border-white/[0.06] shadow-2xl shadow-black/30 overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 border-b border-white/[0.06] bg-white/[0.02]">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-500/70" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
-                <div className="w-3 h-3 rounded-full bg-green-500/70" />
-              </div>
-              <div className="flex-1 text-center">
-                <span className="text-[11px] text-white/30 font-mono">your-journey.ts</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-1.5 w-20 rounded-full bg-white/[0.06] overflow-hidden">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-primary to-[hsl(280,80%,60%)] rounded-full"
-                    style={{ width: `${progressPercent}%` }}
-                    transition={{ duration: 0.1 }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 md:p-8 font-mono text-sm md:text-[15px] leading-relaxed text-white/90 min-h-[320px]">
-              <div className="flex gap-4">
-                <div className="select-none text-white/15 text-right w-6 shrink-0">
-                  {CODE_LINES.map((_, i) => (
-                    <div key={i} className="h-[1.7em]">{i + 1}</div>
-                  ))}
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  {renderedLines}
-                  {showCursor && visibleChars > 0 && (
-                    <motion.span
-                      className="inline-block w-[2px] h-[1.1em] bg-primary ml-[1px] -mb-[2px] align-text-bottom"
-                      animate={{ opacity: [1, 0] }}
-                      transition={{ repeat: Infinity, duration: 0.8, ease: "steps(2)" }}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -187,11 +75,6 @@ export default function Landing() {
     }
   };
 
-  const toggleLanguage = () => {
-    const newLang = i18n.language === "ru" ? "en" : "ru";
-    i18n.changeLanguage(newLang);
-  };
-
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -249,14 +132,6 @@ export default function Landing() {
             <span className="font-display font-bold text-lg tracking-tight">CodePath</span>
           </div>
           <div className="flex items-center gap-2">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={toggleLanguage}
-              className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-colors duration-300 flex items-center gap-1.5"
-            >
-              <span className="text-base leading-none">{i18n.language === "ru" ? "🇷🇺" : "🇬🇧"}</span>
-              <span className="text-xs font-bold uppercase">{i18n.language === "ru" ? "RU" : "EN"}</span>
-            </motion.button>
             <motion.button 
               whileTap={{ scale: 0.9, rotate: 15 }}
               onClick={() => setIsDark(!isDark)}
@@ -509,8 +384,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
-      <ScrollCodeTyping />
 
       <section className="py-24 lg:py-32 relative">
         <div className="absolute inset-0 -z-10 bg-muted/30" />
