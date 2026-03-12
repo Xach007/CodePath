@@ -55,9 +55,7 @@ async function seed() {
   const existingCourses = await db.select().from(coursesTable);
   const existingLanguages = new Set(existingCourses.map(c => c.language));
 
-  if (existingLanguages.has("python")) {
-    console.log("Original courses already exist, skipping Python/JS/HTML/CSS/SQL seed.");
-  } else {
+  if (!existingLanguages.has("python")) {
 
   // =============== PYTHON COURSE ===============
   const [pythonCourse] = await db.insert(coursesTable).values({
@@ -194,7 +192,9 @@ async function seed() {
   });
 
   console.log("Python course seeded (18 lessons)");
+  } // end python block
 
+  if (!existingLanguages.has("javascript")) {
   // =============== JAVASCRIPT COURSE ===============
   const [jsCourse] = await db.insert(coursesTable).values({
     title: "JavaScript Essentials",
@@ -334,7 +334,9 @@ async function seed() {
   });
 
   console.log("JavaScript course seeded (18 lessons)");
+  } // end javascript block
 
+  if (!existingLanguages.has("html")) {
   // =============== HTML COURSE ===============
   const [htmlCourse] = await db.insert(coursesTable).values({
     title: "HTML Fundamentals",
@@ -454,7 +456,9 @@ async function seed() {
   });
 
   console.log("HTML course seeded (15 lessons)");
+  } // end html block
 
+  if (!existingLanguages.has("css")) {
   // =============== CSS COURSE ===============
   const [cssCourse] = await db.insert(coursesTable).values({
     title: "CSS Styling Mastery",
@@ -574,7 +578,9 @@ async function seed() {
   });
 
   console.log("CSS course seeded (15 lessons)");
+  } // end css block
 
+  if (!existingLanguages.has("sql")) {
   // =============== SQL COURSE ===============
   const [sqlCourse] = await db.insert(coursesTable).values({
     title: "SQL for Beginners",
@@ -694,8 +700,7 @@ async function seed() {
   });
 
   console.log("SQL course seeded (15 lessons)");
-
-  } // end of original courses block
+  } // end sql block
 
   // =============== C++ COURSE ===============
   if (!existingLanguages.has("cpp")) {
