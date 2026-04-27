@@ -9,8 +9,8 @@ import crypto from "crypto";
 
 const router = Router();
 
-const GOOGLE_CLIENT_ID = process.env["GOOGLE_CLIENT_ID"] || "";
-const GOOGLE_CLIENT_SECRET = process.env["GOOGLE_CLIENT_SECRET"] || "";
+const GOOGLE_CLIENT_ID = (process.env["GOOGLE_CLIENT_ID"] || "").trim();
+const GOOGLE_CLIENT_SECRET = (process.env["GOOGLE_CLIENT_SECRET"] || "").trim();
 const DOMAIN = process.env["REPLIT_DOMAINS"]
   ? process.env["REPLIT_DOMAINS"].split(",")[0]
   : `localhost:${process.env["PORT"]}`;
