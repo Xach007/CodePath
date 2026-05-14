@@ -42,3 +42,9 @@ id = "9jv3MWrEXCYr5fRC1syIs"
 uri = "file://attached_assets/CodePath_UseCase2.png"
 type = "image"
 title = "Диаграмма вариантов использования — CodePath"
+
+[[outputs]]
+id = "QJu8nGoPKLKLZMugScacd"
+uri = "file://attached_assets/CodePath_DB_Schema.png"
+type = "image"
+title = "Схема базы данных — CodePath"
