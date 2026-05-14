@@ -36,3 +36,9 @@ id = "zSV44OcQMl7mW6p32roa8"
 uri = "file://attached_assets/CodePath_cost_breakdown.png"
 type = "image"
 title = "Структура затрат на разработку CodePath — круговая диаграмма"
+
+[[outputs]]
+id = "9jv3MWrEXCYr5fRC1syIs"
+uri = "file://attached_assets/CodePath_UseCase2.png"
+type = "image"
+title = "Диаграмма вариантов использования — CodePath"
