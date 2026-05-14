@@ -82,9 +82,13 @@ export default function Achievements() {
                     <p className="text-[11px] text-muted-foreground leading-snug">
                       {ach.description}
                     </p>
-                    {isUnlocked && (
+                    {isUnlocked ? (
                       <div className="mt-3 text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/8 px-2.5 py-1 rounded-full border border-primary/10">
-                        Unlocked
+                        Получено
+                      </div>
+                    ) : (
+                      <div className="mt-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/40 px-2.5 py-1 rounded-full border border-border/30">
+                        Заблокировано
                       </div>
                     )}
                   </CardContent>
