@@ -48,3 +48,9 @@ id = "QJu8nGoPKLKLZMugScacd"
 uri = "file://attached_assets/CodePath_DB_Schema.png"
 type = "image"
 title = "Схема базы данных — CodePath"
+
+[[outputs]]
+id = "JN__XQaRAJCitJUnkUC0-"
+uri = "file://attached_assets/CodePath_QR.png"
+type = "image"
+title = "QR-код сайта CodePath"
