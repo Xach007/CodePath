@@ -6,10 +6,9 @@ services:
     domains:
       - codepath.ru
     buildCommand: >
-      npm install -g pnpm@11.2.2 &&
-      pnpm install --frozen-lockfile &&
-      pnpm --filter @workspace/learn run build &&
-      pnpm --filter @workspace/api-server run build
+      corepack pnpm install --frozen-lockfile &&
+      corepack pnpm --filter @workspace/learn run build &&
+      corepack pnpm --filter @workspace/api-server run build
     startCommand: node artifacts/api-server/dist/index.cjs
     healthCheckPath: /api/healthz
     envVars:
