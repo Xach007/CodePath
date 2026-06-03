@@ -25,7 +25,7 @@ const STATS = [
   { value: "∞", label: "Practice" },
 ];
 
-type Phase = "void" | "code" | "converge" | "brand" | "stats" | "exit";
+type Phase = "code" | "converge" | "brand" | "stats" | "exit";
 
 function Particles({ count = 40 }: { count?: number }) {
   const particles = useMemo(() =>
@@ -92,7 +92,7 @@ function GradientOrb({ x, y, size, color, delay }: { x: string; y: string; size:
 }
 
 export function IntroAnimation({ onComplete }: { onComplete: () => void }) {
-  const [phase, setPhase] = useState<Phase>("void");
+  const [phase, setPhase] = useState<Phase>("code");
   const completedRef = useRef(false);
   const skipRef = useRef(false);
 
@@ -129,17 +129,15 @@ export function IntroAnimation({ onComplete }: { onComplete: () => void }) {
     if (skipRef.current) return;
     const timers: ReturnType<typeof setTimeout>[] = [];
 
-    timers.push(setTimeout(() => { if (!skipRef.current) setPhase("code"); }, 300));
-    timers.push(setTimeout(() => { if (!skipRef.current) setPhase("converge"); }, 1600));
-    timers.push(setTimeout(() => { if (!skipRef.current) setPhase("brand"); }, 2400));
-    timers.push(setTimeout(() => { if (!skipRef.current) setPhase("stats"); }, 3400));
-    timers.push(setTimeout(() => { if (!skipRef.current) setPhase("exit"); }, 4400));
-    timers.push(setTimeout(() => { if (!skipRef.current) finish(); }, 5200));
+    timers.push(setTimeout(() => { if (!skipRef.current) setPhase("converge"); }, 1300));
+    timers.push(setTimeout(() => { if (!skipRef.current) setPhase("brand"); }, 2100));
+    timers.push(setTimeout(() => { if (!skipRef.current) setPhase("stats"); }, 3100));
+    timers.push(setTimeout(() => { if (!skipRef.current) setPhase("exit"); }, 4100));
+    timers.push(setTimeout(() => { if (!skipRef.current) finish(); }, 4900));
 
     return () => timers.forEach(clearTimeout);
   }, [finish]);
 
-  const codeVisible = phase !== "void";
   const converging = phase === "converge" || phase === "brand" || phase === "stats" || phase === "exit";
   const brandVisible = phase === "brand" || phase === "stats" || phase === "exit";
   const statsVisible = phase === "stats" || phase === "exit";
@@ -191,9 +189,7 @@ export function IntroAnimation({ onComplete }: { onComplete: () => void }) {
                   animate={
                     converging
                       ? { opacity: 0, x: 0, y: 0, scale: 0.3, filter: "blur(12px)" }
-                      : codeVisible
-                      ? { opacity: 1, x: frag.x, y: frag.y, filter: "blur(0px)", scale: 1 }
-                      : {}
+                      : { opacity: 1, x: frag.x, y: frag.y, filter: "blur(0px)", scale: 1 }
                   }
                   transition={{
                     duration: converging ? 0.5 : 0.5,

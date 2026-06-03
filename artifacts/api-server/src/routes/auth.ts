@@ -11,6 +11,53 @@ import {
 import { hashPassword, generateToken, authMiddleware, getAuthUserId } from "../lib/auth";
 
 const router: IRouter = Router();
+const MAX_AVATAR_DATA_URL_LENGTH = 1_000_000;
+
+type UpdateProfileBody = {
+  displayName?: string;
+  avatarUrl?: string | null;
+};
+
+function parseUpdateProfileBody(body: unknown): { success: true; data: UpdateProfileBody } | { success: false; error: string } {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return { success: false, error: "Invalid profile update body" };
+  }
+
+  const input = body as Record<string, unknown>;
+  const data: UpdateProfileBody = {};
+  let hasField = false;
+
+  if (Object.prototype.hasOwnProperty.call(input, "displayName")) {
+    hasField = true;
+    if (typeof input["displayName"] !== "string") {
+      return { success: false, error: "Display name must be a string" };
+    }
+
+    const displayName = input["displayName"].trim();
+    if (displayName.length < 1 || displayName.length > 80) {
+      return { success: false, error: "Display name must be between 1 and 80 characters" };
+    }
+    data.displayName = displayName;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(input, "avatarUrl")) {
+    hasField = true;
+    const avatarUrl = input["avatarUrl"];
+    if (avatarUrl !== null && typeof avatarUrl !== "string") {
+      return { success: false, error: "Avatar URL must be a string or null" };
+    }
+    if (typeof avatarUrl === "string" && avatarUrl.length > MAX_AVATAR_DATA_URL_LENGTH) {
+      return { success: false, error: "Avatar image is too large" };
+    }
+    data.avatarUrl = avatarUrl;
+  }
+
+  if (!hasField) {
+    return { success: false, error: "No profile fields provided" };
+  }
+
+  return { success: true, data };
+}
 
 router.post("/auth/register", async (req, res): Promise<void> => {
   const parsed = RegisterBody.safeParse(req.body);
@@ -105,6 +152,42 @@ router.get("/auth/me", authMiddleware, async (req, res): Promise<void> => {
     res.status(401).json({ error: "User not found" });
     return;
   }
+  res.json(GetMeResponse.parse({
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+    createdAt: user.createdAt,
+  }));
+});
+
+router.patch("/auth/me", authMiddleware, async (req, res): Promise<void> => {
+  const parsed = parseUpdateProfileBody(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error });
+    return;
+  }
+
+  const updates: { displayName?: string; avatarUrl?: string | null } = {};
+  if (Object.prototype.hasOwnProperty.call(parsed.data, "displayName")) {
+    updates.displayName = parsed.data.displayName;
+  }
+  if (Object.prototype.hasOwnProperty.call(parsed.data, "avatarUrl")) {
+    updates.avatarUrl = parsed.data.avatarUrl ?? null;
+  }
+
+  const userId = getAuthUserId(req);
+  const [user] = await db.update(usersTable)
+    .set(updates)
+    .where(eq(usersTable.id, userId))
+    .returning();
+
+  if (!user) {
+    res.status(401).json({ error: "User not found" });
+    return;
+  }
+
   res.json(GetMeResponse.parse({
     id: user.id,
     username: user.username,

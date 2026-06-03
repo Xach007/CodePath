@@ -6,6 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar, Flame, Star, Trophy, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { isAchievementUnlocked } from "@/lib/achievements";
+import { translateCourseTitle } from "@/lib/course-i18n";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -21,7 +23,7 @@ export default function Profile() {
   const { data: user, isLoading: isLoadingUser } = useGetMe();
   const { data: progress, isLoading: isLoadingProgress } = useGetUserProgress();
   const { data: gamification, isLoading: isLoadingGame } = useGetGamificationProfile();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const isLoading = isLoadingUser || isLoadingProgress || isLoadingGame;
 
@@ -36,7 +38,9 @@ export default function Profile() {
 
   if (!user || !gamification) return null;
 
-  const joinDate = new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const currentLanguage = i18n.resolvedLanguage?.startsWith("ru") ? "ru" : "en";
+  const joinDate = new Date(user.createdAt).toLocaleDateString(currentLanguage === "ru" ? "ru-RU" : "en-US", { month: 'long', year: 'numeric' });
+  const unlockedAchievements = gamification.achievements.filter(isAchievementUnlocked);
 
   return (
     <motion.div 
@@ -75,7 +79,7 @@ export default function Profile() {
                 {[
                   { icon: Flame, label: t("dashboard.streak"), value: gamification.currentStreak, color: "text-accent", bg: "bg-accent/10" },
                   { icon: Star, label: t("dashboard.totalXP"), value: gamification.totalXP, color: "text-primary", bg: "bg-primary/10" },
-                  { icon: Trophy, label: t("achievements.title"), value: gamification.achievements?.length || 0, color: "text-purple-500", bg: "bg-purple-500/10" },
+                  { icon: Trophy, label: t("achievements.title"), value: unlockedAchievements.length, color: "text-purple-500", bg: "bg-purple-500/10" },
                 ].map((stat, i) => (
                   <div key={i} className="flex items-center gap-3.5">
                     <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center ${stat.color}`}>
@@ -128,7 +132,7 @@ export default function Profile() {
                   {progress.coursesProgress.map((cp: any) => (
                     <div key={cp.courseId}>
                       <div className="flex justify-between items-center mb-2">
-                        <p className="font-semibold text-sm">{cp.courseTitle}</p>
+                        <p className="font-semibold text-sm">{translateCourseTitle(t, cp.courseTitle)}</p>
                         <p className="text-xs text-primary font-bold">{cp.percentComplete}%</p>
                       </div>
                       <Progress value={cp.percentComplete} className="h-2 mb-1.5" indicatorClassName="bg-gradient-to-r from-primary to-[hsl(280,80%,60%)]" />

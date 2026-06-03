@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
@@ -20,12 +21,44 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { X, Play, CheckCircle2, XCircle, ArrowRight, Lightbulb, Trophy, Star, RotateCcw, Terminal, Code2, FileText, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { translateAchievementDescription, translateAchievementTitle } from "@/lib/achievement-i18n";
+import { translateLessonMarkdown, translateLessonText, translateLessonTitle } from "@/lib/lesson-i18n";
+
+type QuizQuestionOption = {
+  id: number;
+  text: string;
+};
+
+type QuizQuestionItem = {
+  id: number;
+  question: string;
+  explanation?: string | null;
+  options: QuizQuestionOption[];
+};
+
+function shuffleOptions(options: QuizQuestionOption[]): QuizQuestionOption[] {
+  const shuffled = [...options];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+function buildShuffledQuestions(questions: QuizQuestionItem[]): QuizQuestionItem[] {
+  return questions.map((question) => ({
+    ...question,
+    options: shuffleOptions(question.options),
+  }));
+}
 
 export default function Lesson() {
   const params = useParams();
   const [, setLocation] = useLocation();
   const lessonId = parseInt(params.id || "0");
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   const { data: lesson, isLoading } = useGetLesson(lessonId, { query: { enabled: !!lessonId } });
   const completeMutation = useCompleteLesson();
@@ -40,6 +73,7 @@ export default function Lesson() {
   const [collectedAnswers, setCollectedAnswers] = useState<{questionId: number, optionId: number}[]>([]);
   const [answerResults, setAnswerResults] = useState<Record<number, {correct: boolean, correctOptionId: number, explanation?: string | null}>>({});
   const [quizFinished, setQuizFinished] = useState(false);
+  const [shuffledQuizQuestions, setShuffledQuizQuestions] = useState<QuizQuestionItem[]>([]);
 
   const [code, setCode] = useState<string>("");
   const [codeResult, setCodeResult] = useState<any>(null);
@@ -65,6 +99,7 @@ export default function Lesson() {
     setCollectedAnswers([]);
     setAnswerResults({});
     setQuizFinished(false);
+    setShuffledQuizQuestions([]);
     setCodeResult(null);
     setShowHints(false);
     setShowSuccessOverlay(false);
@@ -73,6 +108,36 @@ export default function Lesson() {
       setCode(lesson.codingChallenge.starterCode);
     }
   }, [lessonId, lesson]);
+
+  useEffect(() => {
+    if (!lesson || lesson.type !== "quiz") {
+      setShuffledQuizQuestions([]);
+      return;
+    }
+
+    const questions = (lesson.quizQuestions || []) as QuizQuestionItem[];
+    setShuffledQuizQuestions(buildShuffledQuestions(questions));
+  }, [lessonId, lesson?.type, lesson?.quizQuestions]);
+
+  useEffect(() => {
+    if (!showSuccessOverlay) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [showSuccessOverlay]);
+
+  useEffect(() => {
+    if (!showSuccessOverlay) return;
+    triggerConfetti();
+  }, [showSuccessOverlay]);
 
   if (isLoading || !lesson) {
     return (
@@ -98,15 +163,14 @@ export default function Lesson() {
     const duration = 2500;
     const end = Date.now() + duration;
     const frame = () => {
-      confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#8b5cf6', '#10b981', '#f59e0b'] });
-      confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#8b5cf6', '#10b981', '#f59e0b'] });
+      confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, zIndex: 130, colors: ['#8b5cf6', '#10b981', '#f59e0b'] });
+      confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, zIndex: 130, colors: ['#8b5cf6', '#10b981', '#f59e0b'] });
       if (Date.now() < end) requestAnimationFrame(frame);
     };
     frame();
   };
 
   const handleSuccess = (xp: number, achievements: any[]) => {
-    triggerConfetti();
     setRewardData({ xp, achievements });
     setShowSuccessOverlay(true);
     queryClient.invalidateQueries({ queryKey: getGetUserProgressQueryKey() });
@@ -118,12 +182,12 @@ export default function Lesson() {
       const res = await completeMutation.mutateAsync({ lessonId });
       handleSuccess(res.xpEarned, res.newAchievements);
     } catch (err) {
-      toast.error("Failed to complete lesson");
+      toast.error(t("lesson.failedComplete"));
     }
   };
 
   const handleQuizCheck = async () => {
-    const questions = lesson.quizQuestions || [];
+    const questions = shuffledQuizQuestions.length > 0 ? shuffledQuizQuestions : (lesson.quizQuestions || []);
     const question = questions[currentQuestionIndex];
     if (!selectedOption || !question) return;
 
@@ -136,12 +200,12 @@ export default function Lesson() {
       setCollectedAnswers(prev => [...prev, { questionId: question.id, optionId: selectedOption }]);
       setQuizState('checked');
     } catch (err) {
-      toast.error("Failed to check answer");
+      toast.error(t("lesson.failedCheckAnswer"));
     }
   };
 
   const handleQuizNext = async () => {
-    const questions = lesson.quizQuestions || [];
+    const questions = shuffledQuizQuestions.length > 0 ? shuffledQuizQuestions : (lesson.quizQuestions || []);
     const isLastQuestion = currentQuestionIndex >= questions.length - 1;
 
     if (isLastQuestion) {
@@ -155,7 +219,7 @@ export default function Lesson() {
         setQuizFinished(true);
         if (res.passed) handleSuccess(res.xpEarned, res.newAchievements);
       } catch (err) {
-        toast.error("Failed to submit quiz");
+        toast.error(t("lesson.failedSubmitQuiz"));
       }
     } else {
       setCurrentQuestionIndex(prev => prev + 1);
@@ -172,6 +236,8 @@ export default function Lesson() {
     setQuizResult(null);
     setAnswerResults({});
     setQuizFinished(false);
+    const questions = (lesson.quizQuestions || []) as QuizQuestionItem[];
+    setShuffledQuizQuestions(buildShuffledQuestions(questions));
   };
 
   const handleCodeSubmit = async () => {
@@ -185,10 +251,10 @@ export default function Lesson() {
         handleSuccess(res.xpEarned, res.newAchievements);
       } else {
         setMobileTab('results');
-        toast.error("Some tests failed. Check the results and try again!");
+        toast.error(t("lesson.someTestsFailed"));
       }
     } catch (err) {
-      toast.error("Execution error");
+      toast.error(t("lesson.executionError"));
     }
   };
 
@@ -200,9 +266,86 @@ export default function Lesson() {
     }
   };
 
-  const quizQuestionCount = lesson.quizQuestions?.length || 1;
+  const quizQuestions = shuffledQuizQuestions.length > 0 ? shuffledQuizQuestions : (lesson.quizQuestions || []);
+  const quizQuestionCount = quizQuestions.length || 1;
   const progressValue = lesson.isCompleted ? 100 : 
     lesson.type === 'quiz' ? Math.round((currentQuestionIndex / quizQuestionCount) * 100) : 0;
+  const lessonTitle = translateLessonTitle(t, lesson);
+  const successOverlayPortal = typeof document !== "undefined"
+    ? createPortal(
+        <AnimatePresence>
+          {showSuccessOverlay && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] grid h-[100dvh] place-items-center overflow-hidden bg-background/95 p-4 backdrop-blur-2xl"
+            >
+              <motion.div
+                initial={{ scale: 0.85, y: 40, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                transition={{ type: "spring", bounce: 0.4, duration: 0.8 }}
+                className="max-w-sm w-full bg-card border border-border/50 p-8 rounded-3xl shadow-2xl shadow-black/10 text-center"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", bounce: 0.6, delay: 0.2 }}
+                  className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6"
+                >
+                  <CheckCircle2 className="w-10 h-10 text-success" />
+                </motion.div>
+                <h2 className="text-3xl font-display font-extrabold mb-2 gradient-text">
+                  {t("lesson.lessonComplete")}
+                </h2>
+                <p className="text-muted-foreground mb-8">{t("lesson.greatJob")}</p>
+
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="flex items-center justify-center gap-3 mb-8 bg-accent/8 p-4 rounded-2xl border border-accent/15"
+                >
+                  <Star className="w-7 h-7 text-accent fill-accent" />
+                  <span className="text-2xl font-bold text-accent">+{rewardData.xp} XP</span>
+                </motion.div>
+
+                {rewardData.achievements && rewardData.achievements.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="mb-8 text-left bg-muted/50 p-4 rounded-2xl border border-border/50"
+                  >
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                      <Trophy className="w-3.5 h-3.5" /> {t("lesson.newAchievement")}
+                    </h4>
+                    {rewardData.achievements.map((ach: any) => (
+                      <div key={ach.id} className="flex items-center gap-3">
+                        <span className="text-2xl">{ach.icon}</span>
+                        <div>
+                          <p className="font-bold text-sm">{translateAchievementTitle(t, ach)}</p>
+                          <p className="text-xs text-muted-foreground">{translateAchievementDescription(t, ach)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+
+                <Button
+                  size="lg"
+                  className="w-full rounded-xl h-13 text-base font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+                  onClick={handleNext}
+                >
+                  {t("lesson.continue")} <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )
+    : null;
 
   const renderTheory = () => (
     <div className="max-w-3xl mx-auto py-12 px-4 md:px-8 pb-32">
@@ -216,13 +359,13 @@ export default function Lesson() {
             <FileText className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Theory Lesson</p>
-            <h1 className="text-2xl md:text-3xl font-display font-bold">{lesson.title}</h1>
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">{t("lesson.theoryLesson")}</p>
+            <h1 className="text-2xl md:text-3xl font-display font-bold">{lessonTitle}</h1>
           </div>
         </div>
         <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-display prose-code:text-primary prose-pre:bg-muted/50 prose-pre:border prose-pre:border-border/50 prose-pre:rounded-xl">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {lesson.content || ""}
+            {translateLessonMarkdown(lesson.content)}
           </ReactMarkdown>
         </div>
       </motion.div>
@@ -233,7 +376,7 @@ export default function Lesson() {
           onClick={handleTheoryComplete}
           disabled={completeMutation.isPending}
         >
-          {completeMutation.isPending ? "Saving..." : "Complete & Continue"}
+          {completeMutation.isPending ? t("lesson.completing") : t("lesson.complete")}
           <ArrowRight className="w-5 h-5 ml-2" />
         </Button>
       </div>
@@ -241,7 +384,7 @@ export default function Lesson() {
   );
 
   const renderQuiz = () => {
-    const questions = lesson.quizQuestions || [];
+    const questions = quizQuestions;
     if (questions.length === 0) return null;
     const question = questions[currentQuestionIndex];
     if (!question) return null;
@@ -268,11 +411,12 @@ export default function Lesson() {
               <span className="text-4xl">{quizResult.passed ? '🎉' : '😔'}</span>
             </div>
             <h2 className="text-2xl md:text-3xl font-display font-bold mb-3">
-              {quizResult.passed ? 'Quiz Passed!' : 'Quiz Not Passed'}
+              {quizResult.passed ? t("lesson.quizPassed") : t("lesson.quizNotPassed")}
             </h2>
             <p className="text-muted-foreground text-lg mb-8">
-              You got {correctCount} out of {totalQuestions} correct
-              {!quizResult.passed && '. You need at least 70% to pass.'}
+              {quizResult.passed
+                ? t("lesson.quizPassedDesc", { correct: correctCount, total: totalQuestions })
+                : t("lesson.quizNotPassedDesc", { correct: correctCount, total: totalQuestions })}
             </p>
             <div className="flex gap-2 mb-8">
               {questions.map((q: any, i: number) => {
@@ -290,7 +434,7 @@ export default function Lesson() {
                 onClick={handleQuizRetry}
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Try Again
+                {t("lesson.tryAgain")}
               </Button>
             )}
           </motion.div>
@@ -314,7 +458,7 @@ export default function Lesson() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-                  Question {currentQuestionIndex + 1} of {totalQuestions}
+                  {t("lesson.questionOf", { current: currentQuestionIndex + 1, total: totalQuestions })}
                 </p>
               </div>
             </div>
@@ -336,7 +480,7 @@ export default function Lesson() {
             </div>
           </div>
 
-          <h2 className="text-xl md:text-2xl font-display font-bold mb-8">{question.question}</h2>
+          <h2 className="text-xl md:text-2xl font-display font-bold mb-8">{translateLessonText(question.question)}</h2>
           
           <div className="space-y-3">
             {question.options.map((opt: any, optIdx: number) => {
@@ -373,7 +517,7 @@ export default function Lesson() {
                      isChecked && isSelected && !isCurrentCorrect ? <XCircle className="w-5 h-5 text-destructive" /> :
                      String.fromCharCode(65 + optIdx)}
                   </div>
-                  <span className="flex-1 font-medium leading-snug">{opt.text}</span>
+                  <span className="flex-1 font-medium leading-snug">{translateLessonText(opt.text)}</span>
                 </motion.button>
               );
             })}
@@ -389,9 +533,9 @@ export default function Lesson() {
               >
                 <h4 className={`font-bold mb-1.5 flex items-center gap-2 text-sm ${isCurrentCorrect ? 'text-success' : 'text-destructive'}`}>
                   {isCurrentCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                  {isCurrentCorrect ? "Correct!" : "Not quite right"}
+                  {isCurrentCorrect ? t("lesson.correct") : t("lesson.notQuiteRight")}
                 </h4>
-                <p className="text-sm text-foreground/80 leading-relaxed">{currentResult.explanation}</p>
+                <p className="text-sm text-foreground/80 leading-relaxed">{translateLessonText(currentResult.explanation)}</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -405,7 +549,7 @@ export default function Lesson() {
               disabled={!selectedOption || checkAnswerMutation.isPending}
               onClick={handleQuizCheck}
             >
-              {checkAnswerMutation.isPending ? "Checking..." : "Check Answer"}
+              {checkAnswerMutation.isPending ? t("lesson.checking") : t("lesson.checkAnswer")}
             </Button>
           ) : (
             <Button 
@@ -414,7 +558,7 @@ export default function Lesson() {
               onClick={handleQuizNext}
               disabled={quizMutation.isPending}
             >
-              {quizMutation.isPending ? "Finishing..." : isLastQuestion ? "Finish Quiz" : "Next Question"}
+              {quizMutation.isPending ? t("lesson.finishing") : isLastQuestion ? t("lesson.finishQuiz") : t("lesson.nextQuestion")}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           )}
@@ -433,7 +577,7 @@ export default function Lesson() {
         >
           <div className="flex items-center gap-2 text-destructive text-xs font-bold mb-1">
             <AlertTriangle className="w-3.5 h-3.5" />
-            Runtime Error
+            {t("lesson.runtimeError")}
           </div>
           <pre className="text-xs font-mono text-destructive/80 whitespace-pre-wrap break-all">{codeResult.errorMessage}</pre>
         </motion.div>
@@ -446,28 +590,28 @@ export default function Lesson() {
         >
           <div className="flex items-center gap-2 text-muted-foreground text-xs font-bold mb-1">
             <Terminal className="w-3.5 h-3.5" />
-            Output
+            {t("lesson.output")}
           </div>
           <pre className="text-xs font-mono text-foreground/80 whitespace-pre-wrap">{codeResult.output}</pre>
         </motion.div>
       )}
-      {codeResult?.testResults?.map((t: any, i: number) => (
+      {codeResult?.testResults?.map((test: any, i: number) => (
         <motion.div 
           key={i}
           initial={{ opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: i * 0.05 }}
           className={`p-3 rounded-xl border flex items-start gap-2.5 ${
-            t.passed ? 'bg-success/5 border-success/15' : 'bg-destructive/5 border-destructive/15'
+            test.passed ? 'bg-success/5 border-success/15' : 'bg-destructive/5 border-destructive/15'
           }`}
         >
-          {t.passed ? <CheckCircle2 className="w-4 h-4 text-success shrink-0 mt-0.5" /> : <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />}
+          {test.passed ? <CheckCircle2 className="w-4 h-4 text-success shrink-0 mt-0.5" /> : <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />}
           <div className="text-xs flex-1 min-w-0">
-            <p className="font-semibold">{t.name}</p>
-            {!t.passed && (
+            <p className="font-semibold">{translateLessonText(test.name)}</p>
+            {!test.passed && (
               <div className="mt-1.5 font-mono bg-background/50 p-2 rounded-lg text-[11px] space-y-0.5">
-                <div><span className="text-muted-foreground">Expected:</span> <span className="text-success">{t.expected}</span></div>
-                <div><span className="text-muted-foreground">Got:</span> <span className="text-destructive">{t.actual || "(no output)"}</span></div>
+                <div><span className="text-muted-foreground">{t("lesson.expected")}:</span> <span className="text-success">{test.expected}</span></div>
+                <div><span className="text-muted-foreground">{t("lesson.got")}:</span> <span className="text-destructive">{test.actual || t("lesson.noOutput")}</span></div>
               </div>
             )}
           </div>
@@ -482,6 +626,7 @@ export default function Lesson() {
 
     const passedCount = codeResult?.testResults?.filter((t: any) => t.passed).length || 0;
     const totalTests = codeResult?.testResults?.length || 0;
+    const challengeInstructions = translateLessonMarkdown(chal.instructions);
 
     return (
       <>
@@ -498,10 +643,10 @@ export default function Lesson() {
                   <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
                     <Code2 className="w-4 h-4 text-success" />
                   </div>
-                  <h2 className="text-lg font-display font-bold">{lesson.title}</h2>
+                  <h2 className="text-lg font-display font-bold">{lessonTitle}</h2>
                 </div>
                 <div className="prose prose-sm dark:prose-invert prose-headings:font-display prose-pre:rounded-xl">
-                  <ReactMarkdown>{chal.instructions}</ReactMarkdown>
+                  <ReactMarkdown>{challengeInstructions}</ReactMarkdown>
                 </div>
                 
                 {chal.hints && chal.hints.length > 0 && (
@@ -512,7 +657,7 @@ export default function Lesson() {
                       onClick={() => setShowHints(!showHints)} 
                       className="rounded-xl text-xs font-semibold border-accent/30 text-accent bg-accent/5 hover:bg-accent/10"
                     >
-                      <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> {showHints ? "Hide Hints" : "Show Hints"}
+                      <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> {showHints ? t("lesson.hideHints") : t("lesson.showHints")}
                     </Button>
                     <AnimatePresence>
                       {showHints && (
@@ -524,8 +669,8 @@ export default function Lesson() {
                         >
                           {chal.hints.map((hint: string, i: number) => (
                             <div key={i} className="p-3 bg-accent/5 border border-accent/10 rounded-xl text-sm">
-                              <span className="font-semibold text-accent text-xs">Hint {i+1}:</span>{" "}
-                              <span className="text-foreground/80">{hint}</span>
+                              <span className="font-semibold text-accent text-xs">{t("lesson.hint")} {i+1}:</span>{" "}
+                              <span className="text-foreground/80">{translateLessonText(hint)}</span>
                             </div>
                           ))}
                         </motion.div>
@@ -538,19 +683,19 @@ export default function Lesson() {
             
             <div className="h-[35%] border-t border-border/50 bg-muted/20 p-4 overflow-y-auto">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wider">Test Results</h3>
+                <h3 className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wider">{t("lesson.testResults")}</h3>
                 {codeResult && (
                   <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
                     codeResult.passed ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
                   }`}>
-                    {passedCount}/{totalTests} passed
+                    {passedCount}/{totalTests} {t("lesson.passed")}
                   </span>
                 )}
               </div>
               {!codeResult ? (
                 <div className="flex flex-col items-center justify-center py-6 text-center">
                   <Terminal className="w-8 h-8 text-muted-foreground/30 mb-2" />
-                  <p className="text-sm text-muted-foreground/60">Run your code to see results</p>
+                  <p className="text-sm text-muted-foreground/60">{t("lesson.runToSee")}</p>
                 </div>
               ) : renderTestResults()}
             </div>
@@ -619,7 +764,7 @@ export default function Lesson() {
                 className="text-muted-foreground text-xs font-semibold rounded-lg"
               >
                 <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-                Reset Code
+                {t("lesson.resetCode")}
               </Button>
               <Button 
                 className="rounded-xl font-bold bg-success hover:bg-success/90 text-success-foreground px-6 h-9 text-sm shadow-lg shadow-success/20 hover:shadow-success/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
@@ -629,12 +774,12 @@ export default function Lesson() {
                 {codeMutation.isPending ? (
                   <>
                     <div className="w-3.5 h-3.5 mr-1.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Running...
+                    {t("lesson.running")}
                   </>
                 ) : (
                   <>
                     <Play className="w-3.5 h-3.5 mr-1.5 fill-current" />
-                    Run Tests
+                    {t("lesson.runTests")}
                   </>
                 )}
               </Button>
@@ -646,9 +791,9 @@ export default function Lesson() {
         <div className="flex md:hidden flex-col h-[calc(100vh-4rem)] bg-background">
           <div className="flex border-b border-border/50 bg-card">
             {([
-              { key: 'instructions' as const, label: 'Instructions', icon: FileText },
-              { key: 'editor' as const, label: 'Code', icon: Code2 },
-              { key: 'results' as const, label: 'Results', icon: Terminal },
+              { key: 'instructions' as const, label: t("lesson.instructions"), icon: FileText },
+              { key: 'editor' as const, label: t("lesson.code"), icon: Code2 },
+              { key: 'results' as const, label: t("lesson.results"), icon: Terminal },
             ]).map(tab => (
               <button
                 key={tab.key}
@@ -672,20 +817,20 @@ export default function Lesson() {
           <div className="flex-1 min-h-0 overflow-hidden">
             {mobileTab === 'instructions' && (
               <div className="h-full overflow-y-auto p-4">
-                <h2 className="text-lg font-display font-bold mb-3">{lesson.title}</h2>
+                <h2 className="text-lg font-display font-bold mb-3">{lessonTitle}</h2>
                 <div className="prose prose-sm dark:prose-invert prose-headings:font-display prose-pre:rounded-xl">
-                  <ReactMarkdown>{chal.instructions}</ReactMarkdown>
+                  <ReactMarkdown>{challengeInstructions}</ReactMarkdown>
                 </div>
                 {chal.hints && chal.hints.length > 0 && (
                   <div className="mt-4">
                     <Button variant="outline" size="sm" onClick={() => setShowHints(!showHints)} className="rounded-xl text-xs font-semibold border-accent/30 text-accent">
-                      <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> {showHints ? "Hide" : "Hints"}
+                      <Lightbulb className="w-3.5 h-3.5 mr-1.5" /> {showHints ? t("lesson.hideHints") : t("lesson.showHints")}
                     </Button>
                     {showHints && (
                       <div className="mt-2 space-y-2">
                         {chal.hints.map((hint: string, i: number) => (
                           <div key={i} className="p-3 bg-accent/5 border border-accent/10 rounded-xl text-sm">
-                            <span className="font-semibold text-accent text-xs">Hint {i+1}:</span> {hint}
+                            <span className="font-semibold text-accent text-xs">{t("lesson.hint")} {i+1}:</span> {translateLessonText(hint)}
                           </div>
                         ))}
                       </div>
@@ -723,8 +868,8 @@ export default function Lesson() {
                 {!codeResult ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <Terminal className="w-12 h-12 text-muted-foreground/20 mb-3" />
-                    <p className="text-muted-foreground font-medium">No results yet</p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">Run your code to see test results</p>
+                    <p className="text-muted-foreground font-medium">{t("lesson.noResultsYet")}</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">{t("lesson.runToSeeTestResults")}</p>
                   </div>
                 ) : renderTestResults()}
               </div>
@@ -734,14 +879,14 @@ export default function Lesson() {
           <div className="h-14 border-t border-border/50 bg-card flex items-center justify-between px-4">
             <Button variant="ghost" size="sm" onClick={() => setCode(chal.starterCode)} className="text-muted-foreground text-xs rounded-lg">
               <RotateCcw className="w-3.5 h-3.5 mr-1" />
-              Reset
+              {t("lesson.reset")}
             </Button>
             <Button 
               className="rounded-xl font-bold bg-success hover:bg-success/90 text-success-foreground px-5 h-9 text-sm"
               onClick={handleCodeSubmit}
               disabled={codeMutation.isPending}
             >
-              {codeMutation.isPending ? "Running..." : "Run Tests"}
+              {codeMutation.isPending ? t("lesson.running") : t("lesson.runTests")}
               <Play className="w-3.5 h-3.5 ml-1.5 fill-current" />
             </Button>
           </div>
@@ -769,7 +914,7 @@ export default function Lesson() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden sm:block text-xs text-muted-foreground font-medium">{lesson.title}</span>
+            <span className="hidden sm:block text-xs text-muted-foreground font-medium">{lessonTitle}</span>
             <div className="flex items-center gap-1.5 font-bold text-sm text-accent bg-accent/8 px-3.5 py-1.5 rounded-full border border-accent/15">
               <Star className="w-4 h-4 fill-current" />
               <span>{lesson.xpReward} XP</span>
@@ -782,76 +927,7 @@ export default function Lesson() {
         {lesson.type === 'challenge' && renderChallenge()}
       </div>
 
-      <AnimatePresence>
-        {showSuccessOverlay && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-2xl flex flex-col items-center justify-center p-4"
-          >
-            <motion.div 
-              initial={{ scale: 0.85, y: 40, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              transition={{ type: "spring", bounce: 0.4, duration: 0.8 }}
-              className="max-w-sm w-full bg-card border border-border/50 p-8 rounded-3xl shadow-2xl shadow-black/10 text-center"
-            >
-              <motion.div 
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", bounce: 0.6, delay: 0.2 }}
-                className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6"
-              >
-                <CheckCircle2 className="w-10 h-10 text-success" />
-              </motion.div>
-              <h2 className="text-3xl font-display font-extrabold mb-2 gradient-text">
-                Lesson Complete!
-              </h2>
-              <p className="text-muted-foreground mb-8">Great job! Keep going.</p>
-              
-              <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="flex items-center justify-center gap-3 mb-8 bg-accent/8 p-4 rounded-2xl border border-accent/15"
-              >
-                <Star className="w-7 h-7 text-accent fill-accent" />
-                <span className="text-2xl font-bold text-accent">+{rewardData.xp} XP</span>
-              </motion.div>
-
-              {rewardData.achievements && rewardData.achievements.length > 0 && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="mb-8 text-left bg-muted/50 p-4 rounded-2xl border border-border/50"
-                >
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
-                    <Trophy className="w-3.5 h-3.5" /> New Achievement
-                  </h4>
-                  {rewardData.achievements.map((ach: any) => (
-                    <div key={ach.id} className="flex items-center gap-3">
-                      <span className="text-2xl">{ach.icon}</span>
-                      <div>
-                        <p className="font-bold text-sm">{ach.title}</p>
-                        <p className="text-xs text-muted-foreground">{ach.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </motion.div>
-              )}
-
-              <Button 
-                size="lg" 
-                className="w-full rounded-xl h-13 text-base font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
-                onClick={handleNext}
-              >
-                Continue <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {successOverlayPortal}
     </>
   );
 }

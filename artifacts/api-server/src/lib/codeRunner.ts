@@ -63,13 +63,13 @@ async function runPythonCode(code: string, testCases: TestCase[]): Promise<RunRe
         const wrappedCode = buildPythonWrapper(code, tc.input);
         await fs.writeFile(runScriptPath, wrappedCode, "utf-8");
         const { stdout, stderr } = await execFileAsync(
-          "timeout", ["5", "python3", runScriptPath],
+          "python3", [runScriptPath],
           { timeout: 6000 }
         );
-        actual = stdout.trim();
+        actual = normalizeProgramOutput(stdout);
         allOutput += stdout;
         if (stderr) allOutput += stderr;
-        passed = actual === tc.expectedOutput.trim();
+        passed = outputsMatch(actual, tc.expectedOutput);
       } catch (err: any) {
         const errMsg = err.stderr || err.message || "Execution error";
         error = errMsg.replace(/File ".*?", /g, "").substring(0, 300);
@@ -79,7 +79,7 @@ async function runPythonCode(code: string, testCases: TestCase[]): Promise<RunRe
       }
 
       if (!passed) allPassed = false;
-      testResults.push({ name: tc.name, passed, expected: tc.expectedOutput.trim(), actual, error });
+      testResults.push({ name: tc.name, passed, expected: normalizeProgramOutput(tc.expectedOutput), actual, error });
     }
 
     return {
@@ -111,13 +111,13 @@ async function runJavaScriptCode(code: string, testCases: TestCase[]): Promise<R
         const wrappedCode = buildJavaScriptWrapper(code, tc.input);
         await fs.writeFile(scriptPath, wrappedCode, "utf-8");
         const { stdout, stderr } = await execFileAsync(
-          "timeout", ["5", "node", scriptPath],
+          "node", [scriptPath],
           { timeout: 6000 }
         );
-        actual = stdout.trim();
+        actual = normalizeProgramOutput(stdout);
         allOutput += stdout;
         if (stderr) allOutput += stderr;
-        passed = actual === tc.expectedOutput.trim();
+        passed = outputsMatch(actual, tc.expectedOutput);
       } catch (err: any) {
         const errMsg = err.stderr || err.message || "Execution error";
         error = errMsg.replace(/\(.*?:\d+:\d+\)/g, "").substring(0, 300);
@@ -127,7 +127,7 @@ async function runJavaScriptCode(code: string, testCases: TestCase[]): Promise<R
       }
 
       if (!passed) allPassed = false;
-      testResults.push({ name: tc.name, passed, expected: tc.expectedOutput.trim(), actual, error });
+      testResults.push({ name: tc.name, passed, expected: normalizeProgramOutput(tc.expectedOutput), actual, error });
     }
 
     return {
@@ -146,15 +146,14 @@ async function runHtmlCssCode(code: string, testCases: TestCase[]): Promise<RunR
   let allPassed = true;
 
   for (const tc of testCases) {
-    const expected = tc.expectedOutput.trim().toLowerCase();
-    const codeLower = code.toLowerCase();
-    const passed = codeLower.includes(expected) || checkHtmlPattern(code, expected);
+    const expected = normalizeProgramOutput(tc.expectedOutput);
+    const passed = checkHtmlCssAnswer(code, expected);
     if (!passed) allPassed = false;
     testResults.push({
       name: tc.name,
       passed,
-      expected: tc.expectedOutput.trim(),
-      actual: passed ? tc.expectedOutput.trim() : "Pattern not found in code",
+      expected,
+      actual: passed ? expected : "Expected answer not found in code",
       error: null,
     });
   }
@@ -163,14 +162,55 @@ async function runHtmlCssCode(code: string, testCases: TestCase[]): Promise<RunR
     passed: allPassed,
     testResults,
     output: code.substring(0, 500),
-    errorMessage: allPassed ? null : "Some checks failed. Review your HTML/CSS code.",
+    errorMessage: allPassed ? null : "Some checks failed. Review your answer.",
   };
 }
 
-function checkHtmlPattern(code: string, pattern: string): boolean {
-  const normalized = code.replace(/\s+/g, " ").toLowerCase();
-  const patternNorm = pattern.replace(/\s+/g, " ").toLowerCase();
-  return normalized.includes(patternNorm);
+function normalizeProgramOutput(value: string): string {
+  return value
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .join("\n")
+    .trim();
+}
+
+function outputsMatch(actual: string, expected: string): boolean {
+  const normalizedActual = normalizeProgramOutput(actual);
+  const normalizedExpected = normalizeProgramOutput(expected);
+
+  if (normalizedActual === normalizedExpected) return true;
+
+  const compactActual = normalizedActual.replace(/[ \t]+/g, " ");
+  const compactExpected = normalizedExpected.replace(/[ \t]+/g, " ");
+  return compactActual === compactExpected;
+}
+
+function checkHtmlCssAnswer(code: string, expectedAnswer: string): boolean {
+  const normalizedCode = code.replace(/\s+/g, " ").trim().toLowerCase();
+  const normalizedExpected = expectedAnswer.replace(/\s+/g, " ").trim().toLowerCase();
+
+  if (!normalizedExpected) return true;
+  if (normalizedCode.includes(normalizedExpected)) return true;
+
+  const tagMatch = normalizedExpected.match(/^<\s*([a-z][a-z0-9-]*)(?:\s*>)?$/i);
+  if (tagMatch) {
+    const tagName = escapeRegExp(tagMatch[1]);
+    return new RegExp(`<\\s*${tagName}(?:\\s|>|/)`, "i").test(code);
+  }
+
+  const propertyValueMatch = normalizedExpected.match(/^([a-z-]+)\s*:\s*(.+)$/i);
+  if (propertyValueMatch) {
+    const property = escapeRegExp(propertyValueMatch[1]);
+    const value = escapeRegExp(propertyValueMatch[2].replace(/;$/, "").trim());
+    return new RegExp(`${property}\\s*:\\s*${value}(?:\\s*;|\\s|$)`, "i").test(code);
+  }
+
+  return normalizedExpected
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((part) => normalizedCode.includes(part));
 }
 
 async function runSqlCode(code: string, testCases: TestCase[]): Promise<RunResult> {
@@ -203,6 +243,10 @@ function checkSqlKeywords(code: string, expected: string): boolean {
   const keywords = expected.split(/\s+/);
   const codeUpper = code.toUpperCase();
   return keywords.every(k => codeUpper.includes(k.toUpperCase()));
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function buildPythonWrapper(userCode: string, input: string): string {

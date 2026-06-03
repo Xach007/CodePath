@@ -11,11 +11,13 @@ const router = Router();
 
 const GOOGLE_CLIENT_ID = (process.env["GOOGLE_CLIENT_ID"] || "").trim();
 const GOOGLE_CLIENT_SECRET = (process.env["GOOGLE_CLIENT_SECRET"] || "").trim();
+const configuredBaseUrl = (process.env["APP_BASE_URL"] || process.env["RENDER_EXTERNAL_URL"] || "").trim();
+const normalizedBaseUrl = configuredBaseUrl.replace(/\/+$/, "");
 const DOMAIN = process.env["REPLIT_DOMAINS"]
   ? process.env["REPLIT_DOMAINS"].split(",")[0]
-  : `localhost:${process.env["PORT"]}`;
+  : `localhost:${process.env["PORT"] || "5174"}`;
 const PROTOCOL = process.env["REPLIT_DOMAINS"] ? "https" : "http";
-const FRONTEND_URL = `${PROTOCOL}://${DOMAIN}`;
+const FRONTEND_URL = normalizedBaseUrl || `${PROTOCOL}://${DOMAIN}`;
 const CALLBACK_URL = `${FRONTEND_URL}/api/auth/google/callback`;
 
 if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {

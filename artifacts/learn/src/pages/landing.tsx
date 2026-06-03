@@ -1,21 +1,98 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal, flushSync } from "react-dom";
 import { CodePathLogo } from "@/components/codepath-logo";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useLogin, useRegister, useGetMe } from "@workspace/api-client-react";
-import { setToken } from "@/lib/auth";
-import { Code2, Trophy, Zap, Terminal, ArrowRight, Sparkles, Play, Users, Star, BookOpen, Moon, Sun } from "lucide-react";
+import { getGetMeQueryKey, useLogin, useRegister, useGetMe } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { getToken, setToken } from "@/lib/auth";
+import { Code2, Trophy, Terminal, ArrowRight, Sparkles, Star, BookOpen, Moon, Sun } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+function FastAuthModal({
+  open,
+  onOpenChange,
+  title,
+  description,
+  children,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  useEffect(() => {
+    if (!open) return;
 
-export default function Landing() {
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onOpenChange(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, onOpenChange]);
+
+  const modal = (
+    <div
+      aria-hidden={!open}
+      className={`fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4 ${
+        open ? "opacity-100" : "pointer-events-none opacity-0"
+      }`}
+      style={{ transition: "opacity 240ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onOpenChange(false);
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-modal-title"
+        aria-describedby="auth-modal-description"
+        className={`relative w-full max-w-[420px] rounded-3xl border border-border/50 bg-background p-8 shadow-2xl shadow-black/35 ${
+          open ? "translate-y-0 scale-100 opacity-100" : "translate-y-3 scale-[0.98] opacity-0"
+        }`}
+        style={{ transition: "transform 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={() => onOpenChange(false)}
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          aria-label="Close"
+        >
+          ×
+        </button>
+        <div className="space-y-2">
+          <h2 id="auth-modal-title" className="text-2xl font-display font-bold">{title}</h2>
+          <p id="auth-modal-description" className="text-sm text-muted-foreground">{description}</p>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(modal, document.body);
+}
+
+
+export default function Landing({ introActive = false }: { introActive?: boolean }) {
   const [, setLocation] = useLocation();
-  const { data: user, isLoading: isUserLoading } = useGetMe();
-  const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
+  const hasAuthToken = typeof window !== "undefined" && !!getToken();
+  const { data: user, isLoading: isUserLoading } = useGetMe({
+    query: { enabled: hasAuthToken },
+  });
+  const { t } = useTranslation();
   
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -23,6 +100,11 @@ export default function Landing() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [loginNotBot, setLoginNotBot] = useState(false);
+  const [registerNotBot, setRegisterNotBot] = useState(false);
+  const [featuresVisible, setFeaturesVisible] = useState(false);
+  const [heroPanelVisible, setHeroPanelVisible] = useState(false);
+  const lastScrollYRef = useRef(0);
 
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -36,15 +118,122 @@ export default function Landing() {
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
       localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      document.documentElement.style.colorScheme = 'light';
       localStorage.setItem('theme', 'light');
     }
   }, [isDark]);
+
+  useEffect(() => {
+    let frame = 0;
+    const revealHeroPanel = () => {
+      frame = window.requestAnimationFrame(() => setHeroPanelVisible(true));
+    };
+
+    if (!introActive) {
+      revealHeroPanel();
+      return () => window.cancelAnimationFrame(frame);
+    }
+
+    setHeroPanelVisible(false);
+    const handleIntroComplete = () => {
+      revealHeroPanel();
+    };
+
+    window.addEventListener("codepath:intro-complete", handleIntroComplete, { once: true });
+
+    return () => {
+      window.removeEventListener("codepath:intro-complete", handleIntroComplete);
+      window.cancelAnimationFrame(frame);
+    };
+  }, [introActive]);
+
+  useEffect(() => {
+    const section = document.getElementById("landing-features");
+    if (!section) return;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const scrollingDown = currentScrollY > lastScrollYRef.current + 1;
+      const scrollingUp = currentScrollY < lastScrollYRef.current - 1;
+      lastScrollYRef.current = currentScrollY;
+
+      const rect = section.getBoundingClientRect();
+      const triggerPoint = window.innerHeight * 0.82;
+      const inRevealZone = rect.top <= triggerPoint && rect.bottom >= window.innerHeight * 0.18;
+
+      if (scrollingDown && inRevealZone) {
+        setFeaturesVisible(true);
+        return;
+      }
+
+      if (scrollingUp && rect.top > triggerPoint) {
+        setFeaturesVisible(false);
+      }
+    };
+
+    lastScrollYRef.current = window.scrollY;
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
   
   const loginMutation = useLogin();
   const registerMutation = useRegister();
+
+  const openLogin = () => {
+    if (isLoginOpen && !isRegisterOpen) return;
+    flushSync(() => {
+      setIsRegisterOpen(false);
+      setIsLoginOpen(true);
+    });
+  };
+
+  const closeLogin = () => {
+    setIsLoginOpen(false);
+    setLoginNotBot(false);
+  };
+
+  const openRegister = () => {
+    if (isRegisterOpen && !isLoginOpen) return;
+    flushSync(() => {
+      setIsLoginOpen(false);
+      setIsRegisterOpen(true);
+    });
+  };
+
+  const closeRegister = () => {
+    setIsRegisterOpen(false);
+    setRegisterNotBot(false);
+  };
+
+  const handleAuthPress = (event: React.PointerEvent<HTMLButtonElement>, openAuth: () => void) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+    event.preventDefault();
+    openAuth();
+  };
+
+  useEffect(() => {
+    const authMode = new URLSearchParams(window.location.search).get("auth");
+    if (authMode === "login") {
+      openLogin();
+    } else if (authMode === "register") {
+      openRegister();
+    } else {
+      return;
+    }
+
+    window.history.replaceState({}, "", `${window.location.pathname}${window.location.hash}`);
+  }, []);
 
   useEffect(() => {
     if (user && !isUserLoading) {
@@ -58,10 +247,13 @@ export default function Landing() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!loginNotBot) return;
+
     try {
       const res = await loginMutation.mutateAsync({ data: { email, password } });
       setToken(res.token);
-      window.location.href = "/dashboard";
+      queryClient.removeQueries({ queryKey: getGetMeQueryKey() });
+      setLocation("/dashboard");
     } catch (err: any) {
       console.error(err);
     }
@@ -69,26 +261,16 @@ export default function Landing() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!registerNotBot) return;
+
     try {
       const res = await registerMutation.mutateAsync({ data: { email, password, username, displayName: username } });
       setToken(res.token);
-      window.location.href = "/dashboard";
+      queryClient.removeQueries({ queryKey: getGetMeQueryKey() });
+      setLocation("/dashboard");
     } catch (err: any) {
       console.error(err);
     }
-  };
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.08, delayChildren: 0.1 }
-    }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 24 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } }
   };
 
   const features = [
@@ -120,7 +302,7 @@ export default function Landing() {
 
   const stats = [
     { value: "50+", label: t("landing.stats.lessons"), icon: BookOpen },
-    { value: "100%", label: "Free", icon: Star },
+    { value: "100%", label: t("landing.stats.free"), icon: Star },
     { value: "5", label: t("landing.stats.courses"), icon: Code2 },
   ];
 
@@ -133,115 +315,139 @@ export default function Landing() {
             <span className="font-display font-bold text-lg tracking-tight">CodePath</span>
           </div>
           <div className="flex items-center gap-2">
-            <motion.button 
-              whileTap={{ scale: 0.9, rotate: 15 }}
+            <button
+              type="button"
               onClick={() => setIsDark(!isDark)}
               className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-colors duration-300"
             >
               {isDark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
-            </motion.button>
-            <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" className="rounded-xl font-medium hidden sm:inline-flex">{t("nav.login")}</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[420px] rounded-3xl p-8 border-border/50">
-                <DialogHeader className="space-y-2">
-                  <DialogTitle className="text-2xl font-display font-bold">{t("auth.loginTitle")}</DialogTitle>
-                  <DialogDescription className="text-muted-foreground">
-                    {t("auth.loginSubtitle")}
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleLogin} className="space-y-5 mt-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-sm font-medium">{t("auth.email")}</Label>
-                    <Input 
-                      id="login-email" 
-                      type="email" 
-                      placeholder="you@example.com" 
-                      required 
-                      className="h-12 rounded-xl bg-muted/50 border-border/50 focus:border-primary/50 transition-colors"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-sm font-medium">{t("auth.password")}</Label>
-                    <Input 
-                      id="login-password" 
-                      type="password" 
-                      required 
-                      className="h-12 rounded-xl bg-muted/50 border-border/50 focus:border-primary/50 transition-colors"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-                  {loginMutation.error && (
-                    <p className="text-sm text-destructive font-medium bg-destructive/10 px-4 py-2.5 rounded-xl">Invalid credentials. Please try again.</p>
-                  )}
-                  <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold mt-2" disabled={loginMutation.isPending}>
-                    {loginMutation.isPending ? "..." : t("auth.signIn")}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-            <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
-              <DialogTrigger asChild>
-                <Button className="rounded-xl shadow-lg shadow-primary/20 font-semibold">{t("nav.getStarted")}</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[420px] rounded-3xl p-8 border-border/50">
-                <DialogHeader className="space-y-2">
-                  <DialogTitle className="text-2xl font-display font-bold">{t("auth.registerTitle")}</DialogTitle>
-                  <DialogDescription className="text-muted-foreground">
-                    {t("auth.registerSubtitle")}
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleRegister} className="space-y-5 mt-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="username" className="text-sm font-medium">{t("auth.username")}</Label>
-                    <Input 
-                      id="username" 
-                      placeholder="johndoe" 
-                      required 
-                      className="h-12 rounded-xl bg-muted/50 border-border/50 focus:border-primary/50 transition-colors"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium">{t("auth.email")}</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="you@example.com" 
-                      required 
-                      className="h-12 rounded-xl bg-muted/50 border-border/50 focus:border-primary/50 transition-colors"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium">{t("auth.password")}</Label>
-                    <Input 
-                      id="password" 
-                      type="password" 
-                      required 
-                      className="h-12 rounded-xl bg-muted/50 border-border/50 focus:border-primary/50 transition-colors"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-                  {registerMutation.error && (
-                    <p className="text-sm text-destructive font-medium bg-destructive/10 px-4 py-2.5 rounded-xl">Failed to create account. Please try again.</p>
-                  )}
-                  <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold mt-2" disabled={registerMutation.isPending}>
-                    {registerMutation.isPending ? "..." : t("auth.signUp")}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
+            </button>
+            <button
+              type="button"
+              onPointerDown={(event) => handleAuthPress(event, openLogin)}
+              onClick={openLogin}
+              className="hidden min-h-9 items-center justify-center gap-2 rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition-colors hover:bg-muted sm:inline-flex"
+            >
+              {t("nav.login")}
+            </button>
+            <button
+              type="button"
+              onPointerDown={(event) => handleAuthPress(event, openRegister)}
+              onClick={openRegister}
+              className="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl border border-primary-border bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-colors hover:bg-primary/90"
+            >
+              {t("nav.getStarted")}
+            </button>
           </div>
         </div>
       </nav>
+
+      <FastAuthModal
+        open={isLoginOpen}
+        onOpenChange={(open) => { if (!open) closeLogin(); }}
+        title={t("auth.loginTitle")}
+        description={t("auth.loginSubtitle")}
+      >
+        <form onSubmit={handleLogin} className="space-y-5 mt-6">
+          <div className="space-y-2">
+            <label htmlFor="login-email" className="text-sm font-medium">{t("auth.email")}</label>
+            <Input
+              id="login-email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              className="h-12 rounded-xl bg-muted/50 border-border/50 focus:border-primary/50 transition-colors"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="login-password" className="text-sm font-medium">{t("auth.password")}</label>
+            <Input
+              id="login-password"
+              type="password"
+              required
+              className="h-12 rounded-xl bg-muted/50 border-border/50 focus:border-primary/50 transition-colors"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          {loginMutation.error && (
+            <p className="text-sm text-destructive font-medium bg-destructive/10 px-4 py-2.5 rounded-xl">{t("auth.invalidCredentials")}</p>
+          )}
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/50 bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground transition hover:bg-muted/50">
+            <input
+              type="checkbox"
+              checked={loginNotBot}
+              onChange={(event) => setLoginNotBot(event.target.checked)}
+              className="h-4 w-4 rounded border-border accent-primary"
+            />
+            <span>{t("auth.notBot")}</span>
+          </label>
+          <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold mt-2" disabled={loginMutation.isPending || !loginNotBot}>
+            {loginMutation.isPending ? "..." : t("auth.signIn")}
+          </Button>
+        </form>
+      </FastAuthModal>
+
+      <FastAuthModal
+        open={isRegisterOpen}
+        onOpenChange={(open) => { if (!open) closeRegister(); }}
+        title={t("auth.registerTitle")}
+        description={t("auth.registerSubtitle")}
+      >
+        <form onSubmit={handleRegister} className="space-y-5 mt-6">
+          <div className="space-y-2">
+            <label htmlFor="username" className="text-sm font-medium">{t("auth.username")}</label>
+            <Input
+              id="username"
+              placeholder="johndoe"
+              required
+              className="h-12 rounded-xl bg-muted/50 border-border/50 focus:border-primary/50 transition-colors"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-sm font-medium">{t("auth.email")}</label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+              className="h-12 rounded-xl bg-muted/50 border-border/50 focus:border-primary/50 transition-colors"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="password" className="text-sm font-medium">{t("auth.password")}</label>
+            <Input
+              id="password"
+              type="password"
+              required
+              className="h-12 rounded-xl bg-muted/50 border-border/50 focus:border-primary/50 transition-colors"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          {registerMutation.error && (
+            <p className="text-sm text-destructive font-medium bg-destructive/10 px-4 py-2.5 rounded-xl">Failed to create account. Please try again.</p>
+          )}
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/50 bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground transition hover:bg-muted/50">
+            <input
+              type="checkbox"
+              checked={registerNotBot}
+              onChange={(event) => setRegisterNotBot(event.target.checked)}
+              className="h-4 w-4 rounded border-border accent-primary"
+            />
+            <span>{t("auth.notBot")}</span>
+          </label>
+          <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold mt-2" disabled={registerMutation.isPending || !registerNotBot}>
+            {registerMutation.isPending ? "..." : t("auth.signUp")}
+          </Button>
+        </form>
+      </FastAuthModal>
 
       <section className="relative pt-32 pb-24 lg:pt-44 lg:pb-36 overflow-hidden">
         <div className="absolute inset-0 -z-10">
@@ -252,47 +458,43 @@ export default function Landing() {
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-16 lg:gap-12 items-center">
-            <motion.div 
-              variants={container}
-              initial="hidden"
-              animate="show"
-              className="max-w-xl"
-            >
-              <motion.div variants={item} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/8 text-primary font-semibold text-sm mb-8 border border-primary/15">
+            <div className="max-w-xl">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/8 text-primary font-semibold text-sm mb-8 border border-primary/15">
                 <Sparkles className="w-4 h-4" />
                 <span>{t("landing.badge")}</span>
-              </motion.div>
+              </div>
               
-              <motion.h1 variants={item} className="text-5xl sm:text-6xl lg:text-[4.25rem] font-display font-extrabold leading-[1.08] text-foreground mb-6">
+              <h1 className="text-5xl sm:text-6xl lg:text-[4.25rem] font-display font-extrabold leading-[1.08] text-foreground mb-6">
                 {t("landing.title1")}{" "}
                 <span className="gradient-text">{t("landing.titleHighlight")}</span>{" "}
                 {t("landing.title2")}
-              </motion.h1>
+              </h1>
               
-              <motion.p variants={item} className="text-lg sm:text-xl text-muted-foreground mb-10 leading-relaxed max-w-lg">
+              <p className="text-lg sm:text-xl text-muted-foreground mb-10 leading-relaxed max-w-lg">
                 {t("landing.subtitle")}
-              </motion.p>
+              </p>
               
-              <motion.div variants={item} className="flex flex-col sm:flex-row gap-3">
-                <Button 
-                  size="lg" 
-                  onClick={() => setIsRegisterOpen(true)}
-                  className="rounded-2xl h-14 px-8 text-base font-bold shadow-xl shadow-primary/25 hover:shadow-primary/35 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onPointerDown={(event) => handleAuthPress(event, openRegister)}
+                  onClick={openRegister}
+                  className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-primary-border bg-primary px-8 text-base font-bold text-primary-foreground shadow-xl shadow-primary/25 transition-transform duration-75 hover:bg-primary/90 hover:shadow-primary/35 active:scale-[0.98]"
                 >
                   {t("landing.startFree")}
                   <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  onClick={() => setIsLoginOpen(true)}
-                  className="rounded-2xl h-14 px-8 text-base font-bold border-2 border-border hover:border-primary/30 hover:bg-primary/5 transition-all duration-300"
+                </button>
+                <button
+                  type="button"
+                  onPointerDown={(event) => handleAuthPress(event, openLogin)}
+                  onClick={openLogin}
+                  className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl border-2 border-border px-8 text-base font-bold transition-colors duration-75 hover:border-primary/30 hover:bg-primary/5"
                 >
                   {t("landing.haveAccount")}
-                </Button>
-              </motion.div>
+                </button>
+              </div>
 
-              <motion.div variants={item} className="flex items-center gap-6 mt-10 pt-8 border-t border-border/50">
+              <div className="flex items-center gap-6 mt-10 pt-8 border-t border-border/50">
                 {stats.map((stat, i) => (
                   <div key={i} className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
@@ -304,14 +506,13 @@ export default function Landing() {
                     </div>
                   </div>
                 ))}
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
             
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.92, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
-              className="relative hidden lg:block"
+            <div
+              className={`relative hidden lg:block transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform motion-reduce:transition-none ${
+                heroPanelVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-6 scale-[0.96] opacity-0"
+              }`}
             >
               <div className="absolute -inset-8 bg-gradient-to-r from-primary/15 via-[hsl(280,80%,60%)]/10 to-accent/15 blur-[80px] -z-10 rounded-full" />
               
@@ -356,22 +557,20 @@ export default function Landing() {
                   </div>
                 </div>
                 
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.2, duration: 0.5 }}
-                  className="absolute -bottom-2 -right-2 bg-success text-success-foreground rounded-2xl px-4 py-2.5 shadow-xl shadow-success/30 flex items-center gap-2 font-sans font-bold text-sm border-4 border-background"
+                <div
+                  className={`absolute -bottom-2 -right-2 bg-success text-success-foreground rounded-2xl px-4 py-2.5 shadow-xl shadow-success/30 flex items-center gap-2 font-sans font-bold text-sm border-4 border-background transition-all duration-500 delay-500 ease-out motion-reduce:transition-none ${
+                    heroPanelVisible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+                  }`}
                 >
                   <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">✓</div>
                   All tests passed!
-                </motion.div>
+                </div>
               </div>
 
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.5, duration: 0.5 }}
-                className="absolute -left-6 top-1/3 bg-card rounded-2xl px-4 py-3 shadow-xl shadow-black/10 border border-border/50 flex items-center gap-3 font-sans"
+              <div
+                className={`absolute -left-6 top-1/3 bg-card rounded-2xl px-4 py-3 shadow-xl shadow-black/10 border border-border/50 flex items-center gap-3 font-sans transition-all duration-500 delay-700 ease-out motion-reduce:transition-none ${
+                  heroPanelVisible ? "translate-x-0 opacity-100" : "-translate-x-5 opacity-0"
+                }`}
               >
                 <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center">
                   <Star className="w-5 h-5 text-accent fill-accent" />
@@ -380,38 +579,32 @@ export default function Landing() {
                   <p className="font-bold text-sm">+25 XP</p>
                   <p className="text-xs text-muted-foreground">Challenge complete</p>
                 </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="py-24 lg:py-32 relative">
+      <section id="landing-features" className="py-24 lg:py-32 relative">
         <div className="absolute inset-0 -z-10 bg-muted/30" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center mb-16"
-          >
+          <div className={`text-center mb-16 transition-all duration-[1200ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${featuresVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
             <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">
-              Why learn with <span className="gradient-text">CodePath</span>?
+              {t("landing.whyTitlePrefix")} <span className="gradient-text">CodePath</span>{t("landing.whyTitleSuffix")}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              We combined game design and cognitive science to make learning to code effective and fun.
+              {t("landing.whySubtitle")}
             </p>
-          </motion.div>
+          </div>
           
           <div className="grid md:grid-cols-3 gap-6">
             {features.map((feature, i) => (
-              <motion.div 
+              <div
                 key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.6, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] }}
+                className={`transition-all duration-[1250ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  featuresVisible ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"
+                }`}
+                style={{ transitionDelay: featuresVisible ? `${i * 170 + 220}ms` : "0ms" }}
               >
                 <div className={`group bg-card p-8 rounded-3xl border border-border/50 shadow-sm hover:shadow-xl transition-all duration-500 h-full ${feature.border}`}>
                   <div className={`w-14 h-14 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500`}>
@@ -420,7 +613,7 @@ export default function Landing() {
                   <h3 className="text-xl font-bold font-display mb-3">{feature.title}</h3>
                   <p className="text-muted-foreground leading-relaxed">{feature.desc}</p>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -428,27 +621,23 @@ export default function Landing() {
 
       <section className="py-24 lg:py-32">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
+          <div>
             <h2 className="text-3xl md:text-5xl font-display font-bold mb-6">
-              Start building today
+              {t("landing.ctaTitle")}
             </h2>
             <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto">
-              Join CodePath and start your journey from beginner to developer. No credit card required.
+              {t("landing.ctaSubtitle")}
             </p>
-            <Button 
-              size="lg" 
-              onClick={() => setIsRegisterOpen(true)}
-              className="rounded-2xl h-14 px-10 text-base font-bold shadow-xl shadow-primary/25 hover:shadow-primary/35 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+            <button
+              type="button"
+              onPointerDown={(event) => handleAuthPress(event, openRegister)}
+              onClick={openRegister}
+              className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-primary-border bg-primary px-10 text-base font-bold text-primary-foreground shadow-xl shadow-primary/25 transition-transform duration-75 hover:bg-primary/90 hover:shadow-primary/35 active:scale-[0.98]"
             >
               {t("auth.signUp")}
               <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </motion.div>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -458,7 +647,7 @@ export default function Landing() {
             <CodePathLogo size={28} className="rounded-lg" />
             <span className="font-display font-semibold text-sm">CodePath</span>
           </div>
-          <p className="text-xs text-muted-foreground">Built with passion for learning.</p>
+          <p className="text-xs text-muted-foreground">{t("landing.footerNote")}</p>
         </div>
       </footer>
     </div>

@@ -7,6 +7,8 @@ import lessonsRouter from "./lessons";
 import progressRouter from "./progress";
 import gamificationRouter from "./gamification";
 import adminRouter from "./admin";
+import supportRouter from "./support";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -18,5 +20,7 @@ router.use(lessonsRouter);
 router.use(progressRouter);
 router.use(gamificationRouter);
 router.use(adminRouter);
+router.use(supportRouter);
+router.use(notificationsRouter);
 
 export default router;

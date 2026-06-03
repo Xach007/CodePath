@@ -3,6 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem("theme");
+          var useDark = theme !== "light";
+          document.documentElement.classList.toggle("dark", useDark);
+          document.documentElement.style.colorScheme = useDark ? "dark" : "light";
+        } catch (error) {
+          document.documentElement.classList.add("dark");
+          document.documentElement.style.colorScheme = "dark";
+        }
+      })();
+    </script>
+    <style>
+      html,
+      body,
+      #root {
+        min-height: 100%;
+        margin: 0;
+        background: #020617;
+        color: #f8fafc;
+      }
+
+      html:not(.dark),
+      html:not(.dark) body,
+      html:not(.dark) #root {
+        background: #f8fafc;
+        color: #0f172a;
+      }
+    </style>
     <title>CodePath</title>
     <meta name="description" content="Interactive programming learning platform. Master Python, JavaScript, HTML, CSS, SQL, C++ and Java with hands-on courses, quizzes and coding challenges." />
     <meta property="og:type" content="website" />
@@ -19,9 +49,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <script>
-      (function(){var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.remove('dark')}})();
-    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

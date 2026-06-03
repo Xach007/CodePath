@@ -7,6 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Play, Lock, CheckCircle2, Star, Clock, BookOpen, FileText, HelpCircle, Code2 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
+import { translateCourseDescription, translateCourseTitle, translateModuleDescription, translateModuleTitle } from "@/lib/course-i18n";
+import { translateLessonTitle } from "@/lib/lesson-i18n";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -15,6 +18,7 @@ const fadeUp = {
 
 export default function CourseDetail() {
   const params = useParams();
+  const { t } = useTranslation();
   const courseId = parseInt(params.id || "0");
   
   const { data: course, isLoading: isLoadingCourse } = useGetCourse(courseId, { query: { enabled: !!courseId } });
@@ -32,7 +36,7 @@ export default function CourseDetail() {
   }
 
   if (!course) {
-    return <div className="text-center py-20 text-xl font-bold">Course not found</div>;
+    return <div className="text-center py-20 text-xl font-bold">{t("courses.notFound")}</div>;
   }
 
   const completedIds = new Set(progress?.completedLessonIds || []);
@@ -79,7 +83,7 @@ export default function CourseDetail() {
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <Link href="/courses" className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary transition-colors mb-6 group">
-            <ChevronLeft className="w-4 h-4 mr-1 group-hover:-translate-x-0.5 transition-transform" /> Back to Courses
+            <ChevronLeft className="w-4 h-4 mr-1 group-hover:-translate-x-0.5 transition-transform" /> {t("courses.backToCourses")}
           </Link>
           
           <motion.div 
@@ -108,10 +112,10 @@ export default function CourseDetail() {
             <div className="flex-1">
               <div className="flex flex-wrap gap-2 mb-3">
                 <Badge variant="secondary" className="font-semibold text-xs">{course.language}</Badge>
-                <Badge variant="outline" className="font-semibold text-xs capitalize">{course.difficulty}</Badge>
+                <Badge variant="outline" className="font-semibold text-xs capitalize">{t(`courses.${course.difficulty}`, { defaultValue: course.difficulty })}</Badge>
               </div>
-              <h1 className="text-3xl md:text-4xl font-display font-extrabold mb-3">{course.title}</h1>
-              <p className="text-base text-muted-foreground leading-relaxed">{course.description}</p>
+              <h1 className="text-3xl md:text-4xl font-display font-extrabold mb-3">{translateCourseTitle(t, course)}</h1>
+              <p className="text-base text-muted-foreground leading-relaxed">{translateCourseDescription(t, course)}</p>
             </div>
           </motion.div>
           
@@ -123,27 +127,27 @@ export default function CourseDetail() {
           >
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-primary/8 rounded-xl"><BookOpen className="w-5 h-5 text-primary" /></div>
-              <div><p className="text-sm font-bold">{course.totalLessons}</p><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Lessons</p></div>
+              <div><p className="text-sm font-bold">{course.totalLessons}</p><p className="text-[11px] text-muted-foreground uppercase tracking-wider">{t("courses.lessonsLabel")}</p></div>
             </div>
             <div className="flex items-center gap-3 md:border-l md:border-border/50 md:pl-4">
               <div className="p-2.5 bg-blue-500/8 rounded-xl"><Clock className="w-5 h-5 text-blue-500" /></div>
-              <div><p className="text-sm font-bold">{course.estimatedHours}h</p><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Estimated</p></div>
+              <div><p className="text-sm font-bold">{course.estimatedHours}{t("courses.hoursShort")}</p><p className="text-[11px] text-muted-foreground uppercase tracking-wider">{t("courses.estimated")}</p></div>
             </div>
             <div className="flex items-center gap-3 md:border-l md:border-border/50 md:pl-4">
               <div className="p-2.5 bg-accent/8 rounded-xl"><Star className="w-5 h-5 text-accent fill-accent" /></div>
-              <div><p className="text-sm font-bold text-accent">{course.xpReward}</p><p className="text-[11px] text-muted-foreground uppercase tracking-wider">Total XP</p></div>
+              <div><p className="text-sm font-bold text-accent">{course.xpReward}</p><p className="text-[11px] text-muted-foreground uppercase tracking-wider">{t("courses.totalXP")}</p></div>
             </div>
             <div className="flex items-center justify-end md:pl-4">
               {nextLessonId ? (
                 <Link href={`/lessons/${nextLessonId}`}>
                   <Button className="rounded-xl font-semibold shadow-lg shadow-primary/15 hover:shadow-primary/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 w-full md:w-auto">
-                    {progress?.percentComplete && progress.percentComplete > 0 ? "Continue" : "Start Course"}
+                    {progress?.percentComplete && progress.percentComplete > 0 ? t("courses.continue") : t("courses.start")}
                     <Play className="w-4 h-4 ml-1.5 fill-current" />
                   </Button>
                 </Link>
               ) : (
                 <Button disabled className="rounded-xl font-semibold w-full md:w-auto opacity-50">
-                  No lessons available
+                  {t("courses.noLessons")}
                 </Button>
               )}
             </div>
@@ -155,7 +159,7 @@ export default function CourseDetail() {
         {progress && progress.percentComplete > 0 && (
           <motion.section {...fadeUp}>
             <div className="flex justify-between font-semibold mb-2.5 items-end">
-              <h2 className="text-lg font-display font-bold">Your Progress</h2>
+              <h2 className="text-lg font-display font-bold">{t("dashboard.yourProgress")}</h2>
               <span className="text-primary text-sm">{progress.percentComplete}%</span>
             </div>
             <Progress value={progress.percentComplete} className="h-3 rounded-full bg-muted" indicatorClassName="bg-gradient-to-r from-primary to-[hsl(280,80%,60%)]" />
@@ -167,7 +171,7 @@ export default function CourseDetail() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
         >
-          <h2 className="text-xl font-display font-bold mb-6">Course Syllabus</h2>
+          <h2 className="text-xl font-display font-bold mb-6">{t("courses.syllabus")}</h2>
           <Accordion type="multiple" defaultValue={course.modules?.map((_, i) => `item-${i}`)} className="space-y-3">
             {course.modules?.map((module, mIndex) => (
               <AccordionItem key={module.id} value={`item-${mIndex}`} className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm px-1 data-[state=open]:shadow-md transition-shadow duration-300">
@@ -177,8 +181,8 @@ export default function CourseDetail() {
                       {mIndex + 1}
                     </div>
                     <div>
-                      <h3 className="text-base font-bold font-display">{module.title}</h3>
-                      <p className="text-sm text-muted-foreground font-normal mt-0.5">{module.description}</p>
+                      <h3 className="text-base font-bold font-display">{translateModuleTitle(t, module)}</h3>
+                      <p className="text-sm text-muted-foreground font-normal mt-0.5">{translateModuleDescription(t, module)}</p>
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -204,11 +208,11 @@ export default function CourseDetail() {
                           <div className="flex items-center gap-3.5">
                             <LessonIcon type={lesson.type} isCompleted={isCompleted} />
                             <div>
-                              <p className="font-semibold text-sm">{lesson.title}</p>
+                              <p className="font-semibold text-sm">{translateLessonTitle(t, lesson)}</p>
                               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                <span className="capitalize">{lesson.type}</span>
+                                <span>{t(`lesson.${lesson.type}`, { defaultValue: lesson.type })}</span>
                                 <span className="opacity-30">·</span>
-                                <span>{lesson.estimatedMinutes} min</span>
+                                <span>{lesson.estimatedMinutes} {t("courses.min")}</span>
                                 <span className="opacity-30">·</span>
                                 <span className="flex items-center text-accent font-semibold"><Star className="w-3 h-3 mr-0.5 fill-current" /> {lesson.xpReward}</span>
                               </div>
@@ -221,7 +225,7 @@ export default function CourseDetail() {
                             ) : (
                               <Link href={`/lessons/${lesson.id}`}>
                                 <Button variant={isCompleted ? "outline" : "default"} size="sm" className="rounded-lg font-semibold text-xs h-8">
-                                  {isCompleted ? "Review" : "Start"}
+                                  {isCompleted ? t("courses.review") : t("courses.start")}
                                 </Button>
                               </Link>
                             )}

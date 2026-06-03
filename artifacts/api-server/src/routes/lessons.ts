@@ -52,6 +52,22 @@ async function isLessonUnlocked(userId: number, lesson: { id: number; moduleId: 
   return isLessonCompleted(userId, prevLesson.id);
 }
 
+async function getPublishedLessonContext(lessonId: number) {
+  const [lesson] = await db.select().from(lessonsTable)
+    .where(eq(lessonsTable.id, lessonId));
+  if (!lesson) return null;
+
+  const [mod] = await db.select().from(modulesTable)
+    .where(eq(modulesTable.id, lesson.moduleId));
+  if (!mod) return null;
+
+  const [course] = await db.select().from(coursesTable)
+    .where(eq(coursesTable.id, mod.courseId));
+  if (!course || !course.isPublished) return null;
+
+  return { lesson, mod, course };
+}
+
 router.get("/lessons/:lessonId", authMiddleware, async (req, res): Promise<void> => {
   const params = GetLessonParams.safeParse(req.params);
   if (!params.success) {
@@ -60,13 +76,14 @@ router.get("/lessons/:lessonId", authMiddleware, async (req, res): Promise<void>
   }
 
   const userId = getAuthUserId(req);
-  const [lesson] = await db.select().from(lessonsTable)
-    .where(eq(lessonsTable.id, params.data.lessonId));
+  const lessonContext = await getPublishedLessonContext(params.data.lessonId);
 
-  if (!lesson) {
+  if (!lessonContext) {
     res.status(404).json({ error: "Lesson not found" });
     return;
   }
+
+  const { lesson, mod } = lessonContext;
 
   const isCompleted = await isLessonCompleted(userId, lesson.id);
   const isUnlocked = await isLessonUnlocked(userId, lesson);
@@ -114,9 +131,6 @@ router.get("/lessons/:lessonId", authMiddleware, async (req, res): Promise<void>
     }
   }
 
-  const [mod] = await db.select().from(modulesTable)
-    .where(eq(modulesTable.id, lesson.moduleId));
-
   res.json(GetLessonResponse.parse({
     id: lesson.id,
     moduleId: lesson.moduleId,
@@ -146,11 +160,12 @@ router.post("/lessons/:lessonId/complete", authMiddleware, async (req, res): Pro
   const userId = getAuthUserId(req);
   const lessonId = params.data.lessonId;
 
-  const [lesson] = await db.select().from(lessonsTable).where(eq(lessonsTable.id, lessonId));
-  if (!lesson) {
+  const lessonContext = await getPublishedLessonContext(lessonId);
+  if (!lessonContext) {
     res.status(404).json({ error: "Lesson not found" });
     return;
   }
+  const { lesson } = lessonContext;
 
   const alreadyDone = await isLessonCompleted(userId, lessonId);
   let xpEarned = 0;
@@ -193,6 +208,12 @@ router.post("/lessons/:lessonId/check-answer", authMiddleware, async (req, res):
   const lessonId = params.data.lessonId;
   const { questionId, optionId } = body.data;
 
+  const lessonContext = await getPublishedLessonContext(lessonId);
+  if (!lessonContext) {
+    res.status(404).json({ error: "Lesson not found" });
+    return;
+  }
+
   const [question] = await db.select().from(quizQuestionsTable)
     .where(eq(quizQuestionsTable.id, questionId));
   if (!question || question.lessonId !== lessonId) {
@@ -227,11 +248,12 @@ router.post("/lessons/:lessonId/submit-quiz", authMiddleware, async (req, res): 
 
   const userId = getAuthUserId(req);
   const lessonId = params.data.lessonId;
-  const [lesson] = await db.select().from(lessonsTable).where(eq(lessonsTable.id, lessonId));
-  if (!lesson) {
+  const lessonContext = await getPublishedLessonContext(lessonId);
+  if (!lessonContext) {
     res.status(404).json({ error: "Lesson not found" });
     return;
   }
+  const { lesson } = lessonContext;
 
   const questions = await db.select().from(quizQuestionsTable)
     .where(eq(quizQuestionsTable.lessonId, lessonId));
@@ -304,11 +326,12 @@ router.post("/lessons/:lessonId/submit-code", authMiddleware, async (req, res): 
   const userId = getAuthUserId(req);
   const lessonId = params.data.lessonId;
 
-  const [lesson] = await db.select().from(lessonsTable).where(eq(lessonsTable.id, lessonId));
-  if (!lesson) {
+  const lessonContext = await getPublishedLessonContext(lessonId);
+  if (!lessonContext) {
     res.status(404).json({ error: "Lesson not found" });
     return;
   }
+  const { lesson } = lessonContext;
 
   const [challenge] = await db.select().from(codingChallengesTable)
     .where(eq(codingChallengesTable.lessonId, lessonId));

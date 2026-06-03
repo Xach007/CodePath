@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: codepath
+    runtime: node
+    autoDeploy: true
+    domains:
+      - codepath.ru
+    buildCommand: >
+      corepack enable &&
+      pnpm install --frozen-lockfile &&
+      pnpm --filter @workspace/learn run build &&
+      pnpm --filter @workspace/api-server run build
+    startCommand: node artifacts/api-server/dist/index.cjs
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_BASE_URL
+        value: https://codepath.ru
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SUPPORT_EMAIL_TO
+        value: krokodil22009@gmail.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: codepath-db
+          property: connectionString
+
+databases:
+  - name: codepath-db

@@ -12,19 +12,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { Play, Trophy, Flame, Star, ArrowRight, BookOpen, Zap, Target } from "lucide-react";
 import { motion } from "framer-motion";
+import { isAchievementUnlocked } from "@/lib/achievements";
+import { useTranslation } from "react-i18next";
+import { translateCourseTitle } from "@/lib/course-i18n";
+import { translateAchievementDescription, translateAchievementTitle } from "@/lib/achievement-i18n";
 
 const container = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.06, delayChildren: 0.1 } }
+  hidden: { opacity: 0.96 },
+  show: { opacity: 1, transition: { staggerChildren: 0.075, delayChildren: 0.08 } }
 };
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }
+  show: { opacity: 1, y: 0, transition: { duration: 0.52, ease: [0.16, 1, 0.3, 1] } }
 };
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   const { data: user, isLoading: isLoadingUser } = useGetMe();
   const { data: progress, isLoading: isLoadingProgress } = useGetUserProgress({
     query: { enabled: !!user }
@@ -55,12 +60,13 @@ export default function Dashboard() {
   const activeCourse = activeCourseProgress 
     ? allCourses?.find(c => c.id === activeCourseProgress.courseId)
     : null;
+  const unlockedAchievements = gamification?.achievements?.filter(isAchievementUnlocked) ?? [];
 
   const statCards = [
-    { label: "Total XP", value: progress?.totalXP || 0, icon: Star, color: "text-primary", bg: "bg-primary/10", glow: "group-hover:shadow-primary/10" },
-    { label: "Day Streak", value: gamification?.currentStreak || 0, icon: Flame, color: "text-accent", bg: "bg-accent/10", glow: "group-hover:shadow-accent/10" },
-    { label: "Completed", value: progress?.completedLessons || 0, icon: BookOpen, color: "text-success", bg: "bg-success/10", glow: "group-hover:shadow-success/10" },
-    { label: "Level", value: gamification?.currentLevel || 1, icon: Zap, color: "text-purple-500", bg: "bg-purple-500/10", glow: "group-hover:shadow-purple-500/10" },
+    { label: t("dashboard.totalXP"), value: progress?.totalXP || 0, icon: Star, color: "text-primary", bg: "bg-primary/10", glow: "group-hover:shadow-primary/10" },
+    { label: t("dashboard.streak"), value: gamification?.currentStreak || 0, icon: Flame, color: "text-accent", bg: "bg-accent/10", glow: "group-hover:shadow-accent/10" },
+    { label: t("dashboard.lessonsCompleted"), value: progress?.completedLessons || 0, icon: BookOpen, color: "text-success", bg: "bg-success/10", glow: "group-hover:shadow-success/10" },
+    { label: t("dashboard.level"), value: gamification?.currentLevel || 1, icon: Zap, color: "text-purple-500", bg: "bg-purple-500/10", glow: "group-hover:shadow-purple-500/10" },
   ];
 
   return (
@@ -73,10 +79,10 @@ export default function Dashboard() {
       <motion.section variants={fadeUp}>
         <h1 className="text-3xl md:text-4xl font-display font-extrabold tracking-tight">
           {isLoading ? <Skeleton className="h-10 w-64" /> : (
-            <>Welcome back, <span className="gradient-text">{user?.displayName || user?.username}</span></>
+            <>{t("dashboard.welcome")}, <span className="gradient-text">{user?.displayName || user?.username}</span></>
           )}
         </h1>
-        <p className="text-muted-foreground mt-2 text-lg">Ready to continue your coding journey?</p>
+        <p className="text-muted-foreground mt-2 text-lg">{t("dashboard.ready")}</p>
       </motion.section>
 
       <motion.section variants={fadeUp} className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -100,7 +106,7 @@ export default function Dashboard() {
           <motion.section variants={fadeUp}>
             <h2 className="text-xl font-display font-bold mb-4 flex items-center gap-2">
               <Target className="w-5 h-5 text-primary" />
-              Jump Back In
+              {t("dashboard.jumpBackIn")}
             </h2>
             {isLoading ? (
               <Skeleton className="w-full h-52 rounded-3xl" />
@@ -117,11 +123,11 @@ export default function Dashboard() {
                   </div>
                   <div className="flex-1 w-full text-center md:text-left">
                     <div className="inline-block px-3 py-1 rounded-full bg-primary/8 text-primary text-xs font-bold tracking-wide uppercase mb-3 border border-primary/10">
-                      In Progress
+                      {t("courses.inProgress")}
                     </div>
-                    <h3 className="text-2xl font-bold font-display mb-2">{activeCourse.title}</h3>
+                    <h3 className="text-2xl font-bold font-display mb-2">{translateCourseTitle(t, activeCourse)}</h3>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground justify-center md:justify-start mb-4">
-                      <span>{activeCourseProgress.completedLessons} / {activeCourseProgress.totalLessons} lessons</span>
+                      <span>{activeCourseProgress.completedLessons} / {activeCourseProgress.totalLessons} {t("courses.lessons")}</span>
                       <div className="w-1 h-1 rounded-full bg-border" />
                       <span className="font-semibold text-primary">{activeCourseProgress.percentComplete}%</span>
                     </div>
@@ -129,7 +135,7 @@ export default function Dashboard() {
                     <Link href={`/courses/${activeCourse.id}`}>
                       <Button className="w-full md:w-auto rounded-xl px-8 h-11 font-semibold shadow-lg shadow-primary/15 hover:shadow-primary/25 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300">
                         <Play className="w-4 h-4 mr-2 fill-current" />
-                        Continue Course
+                        {t("dashboard.continueCourse")}
                       </Button>
                     </Link>
                   </div>
@@ -140,10 +146,10 @@ export default function Dashboard() {
                 <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
                   <BookOpen className="w-8 h-8 text-muted-foreground/50" />
                 </div>
-                <h3 className="text-xl font-bold font-display mb-2">No active courses</h3>
-                <p className="text-muted-foreground mb-6 max-w-md mx-auto text-sm">Start a course to begin earning XP and unlocking achievements.</p>
+                <h3 className="text-xl font-bold font-display mb-2">{t("dashboard.noActiveCourses")}</h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto text-sm">{t("dashboard.noActiveCoursesDesc")}</p>
                 <Link href="/courses">
-                  <Button className="rounded-xl px-8 font-semibold">Browse Courses</Button>
+                  <Button className="rounded-xl px-8 font-semibold">{t("dashboard.browseCourses")}</Button>
                 </Link>
               </Card>
             )}
@@ -152,9 +158,9 @@ export default function Dashboard() {
           {allCourses && allCourses.length > 0 && (
             <motion.section variants={fadeUp}>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-display font-bold">Explore Courses</h2>
+                <h2 className="text-xl font-display font-bold">{t("dashboard.exploreCourses")}</h2>
                 <Link href="/courses" className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1">
-                  View all <ArrowRight className="w-4 h-4" />
+                  {t("dashboard.viewAll")} <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -175,9 +181,9 @@ export default function Dashboard() {
                         )}
                       </div>
                       <CardContent className="p-5">
-                        <h3 className="font-bold font-display text-base mb-1 group-hover:text-primary transition-colors">{course.title}</h3>
+                        <h3 className="font-bold font-display text-base mb-1 group-hover:text-primary transition-colors">{translateCourseTitle(t, course)}</h3>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span>{course.totalLessons} lessons</span>
+                          <span>{course.totalLessons} {t("courses.lessons")}</span>
                           <span className="flex items-center text-accent font-semibold"><Star className="w-3 h-3 mr-0.5 fill-current" /> {course.xpReward} XP</span>
                         </div>
                       </CardContent>
@@ -194,7 +200,7 @@ export default function Dashboard() {
             <Card className="rounded-3xl border-border/50 shadow-lg shadow-black/[0.03] overflow-hidden">
               <div className="bg-gradient-to-br from-primary to-[hsl(280,80%,60%)] p-6 text-white text-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_white/10,_transparent_50%)]" />
-                <h3 className="font-display font-bold text-sm uppercase tracking-wider opacity-80 relative z-10">Your Level</h3>
+                <h3 className="font-display font-bold text-sm uppercase tracking-wider opacity-80 relative z-10">{t("dashboard.yourLevel")}</h3>
                 <div className="text-6xl font-display font-black mt-1 mb-1 relative z-10">{gamification?.currentLevel || 1}</div>
               </div>
               <CardContent className="p-5">
@@ -212,7 +218,7 @@ export default function Dashboard() {
                   indicatorClassName="bg-gradient-to-r from-primary to-[hsl(280,80%,60%)]" 
                 />
                 <p className="text-center text-xs text-muted-foreground mt-3 font-medium">
-                  {gamification?.xpToNextLevel || 0} XP to level up
+                  {t("dashboard.xpToLevel", { xp: gamification?.xpToNextLevel || 0 })}
                 </p>
               </CardContent>
             </Card>
@@ -221,8 +227,8 @@ export default function Dashboard() {
           <motion.div variants={fadeUp}>
             <Card className="rounded-3xl border-border/50 shadow-lg shadow-black/[0.03]">
               <div className="p-5 border-b border-border/50 flex justify-between items-center">
-                <h3 className="font-display font-bold">Recent Achievements</h3>
-                <Link href="/achievements" className="text-primary text-xs font-semibold hover:text-primary/80 transition-colors">View All</Link>
+                <h3 className="font-display font-bold">{t("dashboard.recentAchievements")}</h3>
+                <Link href="/achievements" className="text-primary text-xs font-semibold hover:text-primary/80 transition-colors">{t("dashboard.viewAll")}</Link>
               </div>
               <CardContent className="p-0">
                 {isLoading ? (
@@ -230,23 +236,23 @@ export default function Dashboard() {
                     <Skeleton className="h-14 w-full rounded-xl" />
                     <Skeleton className="h-14 w-full rounded-xl" />
                   </div>
-                ) : gamification?.achievements?.length ? (
+                ) : unlockedAchievements.length ? (
                   <div className="divide-y divide-border/50">
-                    {gamification.achievements.slice(0, 3).map((achievement) => (
+                    {unlockedAchievements.slice(0, 3).map((achievement) => (
                       <div key={achievement.id} className="p-4 flex items-center gap-3.5 hover:bg-muted/30 transition-colors duration-300">
                         <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center text-xl shrink-0">
                           {achievement.icon}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-sm truncate">{achievement.title}</h4>
-                          <p className="text-xs text-muted-foreground truncate">{achievement.description}</p>
+                          <h4 className="font-semibold text-sm truncate">{translateAchievementTitle(t, achievement)}</h4>
+                          <p className="text-xs text-muted-foreground truncate">{translateAchievementDescription(t, achievement)}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="p-8 text-center text-muted-foreground text-sm">
-                    Complete lessons to earn achievements!
+                    {t("dashboard.completeLessons")}
                   </div>
                 )}
               </CardContent>

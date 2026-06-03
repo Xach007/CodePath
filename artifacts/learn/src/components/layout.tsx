@@ -23,18 +23,150 @@ import {
   Medal, 
   LogOut,
   User,
-  Menu,
   Moon,
   Sun,
-  Sparkles
+  Settings,
+  HelpCircle,
+  Bell,
+  Trash2
 } from "lucide-react";
-import { useState, useEffect } from "react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { motion, AnimatePresence } from "framer-motion";
+import { useCallback, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 
+type UserNotification = {
+  id: number;
+  title: string;
+  message: string;
+  type: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
+function formatNotificationDate(value: string, language: string) {
+  return new Intl.DateTimeFormat(language === "ru" ? "ru-RU" : "en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function NotificationsBell({ enabled }: { enabled: boolean }) {
+  const { t, i18n } = useTranslation();
+  const language = i18n.resolvedLanguage?.startsWith("ru") ? "ru" : "en";
+  const [items, setItems] = useState<UserNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  const loadNotifications = useCallback(async () => {
+    if (!enabled) return;
+
+    try {
+      setLoading(true);
+      const response = await fetch("/api/notifications");
+      const data = await response.json();
+      if (!response.ok) return;
+      setItems(data.items ?? []);
+      setUnreadCount(data.unreadCount ?? 0);
+    } finally {
+      setLoading(false);
+    }
+  }, [enabled]);
+
+  useEffect(() => {
+    loadNotifications();
+    if (!enabled) return;
+
+    const timer = window.setInterval(loadNotifications, 30000);
+    return () => window.clearInterval(timer);
+  }, [enabled, loadNotifications]);
+
+  const clearAllNotifications = async () => {
+    await fetch("/api/notifications", { method: "DELETE" });
+    setUnreadCount(0);
+    setItems([]);
+  };
+
+  const markOneRead = async (notification: UserNotification) => {
+    if (notification.readAt) return;
+    await fetch(`/api/notifications/${notification.id}/read`, { method: "PATCH" });
+    setUnreadCount((current) => Math.max(0, current - 1));
+    setItems((current) => current.map((item) => (
+      item.id === notification.id ? { ...item, readAt: new Date().toISOString() } : item
+    )));
+  };
+
+  return (
+    <DropdownMenu onOpenChange={(open) => { if (open) loadNotifications(); }}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="notifications-trigger"
+          aria-label={t("notifications.title")}
+          title={t("notifications.title")}
+        >
+          <Bell className="notifications-trigger-icon" />
+          {unreadCount > 0 && (
+            <span className="notifications-trigger-badge">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="notifications-menu" sideOffset={8}>
+        <div className="notifications-menu-header">
+          <DropdownMenuLabel className="notifications-menu-title">
+            {t("notifications.title")}
+          </DropdownMenuLabel>
+          <button
+            type="button"
+            onClick={clearAllNotifications}
+            disabled={items.length === 0}
+            className="notifications-menu-clear"
+          >
+            <Trash2 className="notifications-menu-clear-icon" />
+            {t("notifications.clearAll")}
+          </button>
+        </div>
+        <DropdownMenuSeparator />
+        <div className="notifications-menu-list">
+          {loading && items.length === 0 ? (
+            <DropdownMenuItem disabled className="notifications-menu-empty">
+              {t("notifications.loading")}
+            </DropdownMenuItem>
+          ) : items.length ? (
+            items.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => markOneRead(item)}
+                className="notifications-item"
+              >
+                <div className="notifications-item-row">
+                  <span className={`notifications-item-dot ${item.readAt ? "notifications-item-dot--read" : "notifications-item-dot--new"}`} />
+                  <span className="notifications-item-content">
+                    <span className="notifications-item-title">{item.title}</span>
+                    <span className="notifications-item-message">{item.message}</span>
+                    <span className="notifications-item-date">
+                      {formatNotificationDate(item.createdAt, language)}
+                    </span>
+                  </span>
+                </div>
+              </button>
+            ))
+          ) : (
+            <DropdownMenuItem disabled className="notifications-menu-empty">
+              {t("notifications.empty")}
+            </DropdownMenuItem>
+          )}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { t, i18n } = useTranslation();
   const { data: user, isLoading: isLoadingUser } = useGetMe();
@@ -55,12 +187,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
       localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      document.documentElement.style.colorScheme = 'light';
       localStorage.setItem('theme', 'light');
     }
   }, [isDark]);
+
+  useEffect(() => {
+    document.documentElement.lang = i18n.resolvedLanguage?.startsWith("ru") ? "ru" : "en";
+  }, [i18n.resolvedLanguage]);
 
   const handleLogout = async () => {
     try {
@@ -69,8 +207,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
     removeToken();
     queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
     queryClient.clear();
-    window.location.href = "/";
+    window.sessionStorage.setItem("codepath_show_intro", "1");
+    window.dispatchEvent(new Event("codepath:show-intro"));
+    setLocation("/");
   };
+
+  const handleFastNav = useCallback((href: string, event: React.PointerEvent<HTMLAnchorElement>) => {
+    if (location === href) return;
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    setLocation(href);
+  }, [location, setLocation]);
 
   const navLinks = [
     { href: "/dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
@@ -80,39 +227,41 @@ export function Layout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="sticky top-0 z-50 glass">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group">
-              <div className="relative group-hover:scale-110 transition-all duration-300">
-                <CodePathLogo size={36} className="shadow-lg shadow-primary/25 group-hover:shadow-primary/40 rounded-xl" />
-                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-accent rounded-full border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity" />
+    <div className="layout-root">
+      <header className="layout-header">
+        <div className="layout-header-inner">
+          <div className="layout-header-start">
+            <Link href={user ? "/dashboard" : "/"} className="layout-brand-link">
+              <div className="layout-brand-logo-wrap">
+                <CodePathLogo size={36} className="layout-brand-logo" />
+                <div className="layout-brand-logo-dot" />
               </div>
-              <span className="font-display font-bold text-lg tracking-tight hidden sm:block">CodePath</span>
+              <span className="layout-brand-text">CodePath</span>
             </Link>
 
             {user && (
-              <nav className="hidden md:flex items-center gap-0.5">
+              <nav className="layout-desktop-nav">
                 {navLinks.map((link) => {
                   const isActive = location === link.href || (link.href !== "/dashboard" && location.startsWith(link.href));
                   return (
                     <Link 
                       key={link.href} 
                       href={link.href}
-                      className="relative px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-2"
+                      onPointerDown={(event) => handleFastNav(link.href, event)}
+                      className={`layout-desktop-nav-link ${
+                        isActive ? "layout-desktop-nav-link--active" : "layout-desktop-nav-link--idle"
+                      }`}
                     >
-                      <link.icon className={`w-4 h-4 transition-colors duration-300 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-                      <span className={`transition-colors duration-300 ${isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                        {link.label}
-                      </span>
                       {isActive && (
-                        <motion.div
-                          layoutId="nav-indicator"
-                          className="absolute inset-0 bg-primary/8 rounded-xl border border-primary/10"
-                          transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                        <span
+                          aria-hidden="true"
+                          className="layout-desktop-nav-link-bg"
                         />
                       )}
+                      <link.icon className={`layout-desktop-nav-icon ${isActive ? "layout-desktop-nav-icon--active" : "layout-desktop-nav-icon--idle"}`} />
+                      <span className="layout-desktop-nav-label">
+                        {link.label}
+                      </span>
                     </Link>
                   );
                 })}
@@ -120,133 +269,93 @@ export function Layout({ children }: { children: React.ReactNode }) {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <motion.button 
-              whileTap={{ scale: 0.9, rotate: 15 }}
+          <div className="layout-header-end">
+            <button
+              type="button"
               onClick={() => setIsDark(!isDark)}
-              className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-colors duration-300"
+              className="layout-theme-toggle"
             >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={isDark ? "dark" : "light"}
-                  initial={{ scale: 0, rotate: -90 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  exit={{ scale: 0, rotate: 90 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {isDark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
-                </motion.div>
-              </AnimatePresence>
-            </motion.button>
+              {isDark ? <Sun className="layout-theme-toggle-icon" /> : <Moon className="layout-theme-toggle-icon" />}
+            </button>
 
             {isLoadingUser ? (
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-8 w-20 rounded-full" />
-                <Skeleton className="h-9 w-9 rounded-full" />
+              <div className="layout-user-loading">
+                <Skeleton className="layout-user-loading-pill" />
+                <Skeleton className="layout-user-loading-avatar" />
               </div>
             ) : user ? (
-              <div className="flex items-center gap-3">
+              <div className="layout-user-panel">
+                <NotificationsBell enabled={!!user} />
                 {gamification && (
-                  <div className="hidden sm:flex items-center gap-3 bg-muted/60 rounded-full px-4 py-1.5 border border-border/50">
-                    <div className="flex items-center gap-1.5 font-bold text-sm" title="Day Streak">
-                      <Flame className="w-4 h-4 text-accent fill-accent" />
-                      <span className="text-accent">{gamification.currentStreak}</span>
+                  <div className="layout-user-stats">
+                    <div className="layout-user-stat-item" title={t("dashboard.streak")}>
+                      <Flame className="layout-user-stat-icon layout-user-stat-icon--accent" />
+                      <span className="layout-user-stat-value layout-user-stat-value--accent">{gamification.currentStreak}</span>
                     </div>
-                    <div className="w-px h-3.5 bg-border" />
-                    <div className="flex items-center gap-1.5 font-bold text-sm" title="Total XP">
-                      <Star className="w-4 h-4 text-primary fill-primary" />
-                      <span className="text-primary">{gamification.totalXP}</span>
+                    <div className="layout-user-stat-divider" />
+                    <div className="layout-user-stat-item" title={t("dashboard.totalXP")}>
+                      <Star className="layout-user-stat-icon layout-user-stat-icon--primary" />
+                      <span className="layout-user-stat-value layout-user-stat-value--primary">{gamification.totalXP}</span>
                     </div>
                   </div>
                 )}
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <motion.button 
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-full ring-offset-2 ring-offset-background"
+                    <button
+                      type="button"
+                      className="layout-avatar-trigger"
                     >
-                      <Avatar className="w-9 h-9 border-2 border-border hover:border-primary/50 transition-colors duration-300">
+                      <Avatar className="layout-avatar">
                         <AvatarImage src={user.avatarUrl || ""} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary font-bold text-sm">
+                        <AvatarFallback className="layout-avatar-fallback">
                           {user.username.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                    </motion.button>
+                    </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl shadow-2xl shadow-black/10 border border-border/50" sideOffset={8}>
-                    <DropdownMenuLabel className="font-normal px-2 py-2">
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-semibold font-display">{user.displayName || user.username}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                  <DropdownMenuContent align="end" className="layout-avatar-menu" sideOffset={8}>
+                    <DropdownMenuLabel className="layout-avatar-menu-header">
+                      <div className="layout-avatar-menu-user">
+                        <p className="layout-avatar-menu-name">{user.displayName || user.username}</p>
+                        <p className="layout-avatar-menu-email">{user.email}</p>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <Link href="/profile">
-                      <DropdownMenuItem className="cursor-pointer rounded-xl py-2.5">
-                        <User className="mr-2.5 h-4 w-4" />
+                      <DropdownMenuItem className="layout-avatar-menu-item">
+                        <User className="layout-avatar-menu-item-icon" />
                         <span>{t("nav.profile")}</span>
                       </DropdownMenuItem>
                     </Link>
+                    <Link href="/settings">
+                      <DropdownMenuItem className="layout-avatar-menu-item">
+                        <Settings className="layout-avatar-menu-item-icon" />
+                        <span>{t("nav.settings")}</span>
+                      </DropdownMenuItem>
+                    </Link>
+                    <Link href="/help">
+                      <DropdownMenuItem className="layout-avatar-menu-item">
+                        <HelpCircle className="layout-avatar-menu-item-icon" />
+                        <span>{t("support.title")}</span>
+                      </DropdownMenuItem>
+                    </Link>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive rounded-xl py-2.5" onClick={handleLogout}>
-                      <LogOut className="mr-2.5 h-4 w-4" />
+                    <DropdownMenuItem className="layout-avatar-menu-item layout-avatar-menu-item--logout" onClick={handleLogout}>
+                      <LogOut className="layout-avatar-menu-item-icon" />
                       <span>{t("nav.logout")}</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                <div className="md:hidden">
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon" className="rounded-xl">
-                        <Menu className="w-5 h-5" />
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="right" className="w-[300px] sm:w-[360px] border-l border-border/50">
-                      <nav className="flex flex-col gap-2 mt-8">
-                        {gamification && (
-                          <div className="flex items-center gap-6 p-4 bg-muted/50 rounded-2xl mb-4 border border-border/50">
-                            <div className="flex items-center gap-2 text-accent font-bold text-sm">
-                              <Flame className="w-5 h-5 fill-accent" />
-                              <span>{gamification.currentStreak} Day Streak</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-primary font-bold text-sm">
-                              <Star className="w-5 h-5 fill-primary" />
-                              <span>{gamification.totalXP} XP</span>
-                            </div>
-                          </div>
-                        )}
-                        {navLinks.map((link) => {
-                          const isActive = location === link.href;
-                          return (
-                            <Link 
-                              key={link.href} 
-                              href={link.href}
-                              className={`px-4 py-3.5 rounded-2xl text-base font-medium transition-all duration-300 flex items-center gap-3 ${
-                                isActive 
-                                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
-                                  : "text-foreground hover:bg-muted"
-                              }`}
-                            >
-                              <link.icon className="w-5 h-5" />
-                              {link.label}
-                            </Link>
-                          );
-                        })}
-                      </nav>
-                    </SheetContent>
-                  </Sheet>
-                </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <Link href="/">
-                  <Button variant="ghost" className="hidden sm:inline-flex rounded-xl font-medium">Log in</Button>
+              <div className="layout-guest-actions">
+                <Link href="/?auth=login">
+                  <Button variant="ghost" className="layout-guest-login">{t("nav.login")}</Button>
                 </Link>
-                <Link href="/">
-                  <Button className="rounded-xl shadow-lg shadow-primary/20 font-semibold">Get Started</Button>
+                <Link href="/?auth=register">
+                  <Button className="layout-guest-register">{t("nav.getStarted")}</Button>
                 </Link>
               </div>
             )}
@@ -254,33 +363,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 pb-16 md:pb-0">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+      <main className="layout-main">
+        {children}
       </main>
 
       {user && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden glass border-t border-border/50">
-          <div className="flex items-center justify-around h-16 px-2">
+        <nav className="layout-bottom-nav">
+          <div className="layout-bottom-nav-inner">
             {navLinks.map((link) => {
               const isActive = location === link.href || (link.href !== "/dashboard" && location.startsWith(link.href));
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1"
+                  onPointerDown={(event) => handleFastNav(link.href, event)}
+                  className="layout-bottom-nav-link"
                 >
-                  <link.icon className={`w-5 h-5 transition-colors duration-300 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
-                  <span className={`text-[10px] font-medium transition-colors duration-300 ${isActive ? "text-primary" : "text-muted-foreground"}`}>
+                  <link.icon className={`layout-bottom-nav-icon ${isActive ? "layout-bottom-nav-icon--active" : "layout-bottom-nav-icon--idle"}`} />
+                  <span className={`layout-bottom-nav-label ${isActive ? "layout-bottom-nav-label--active" : "layout-bottom-nav-label--idle"}`}>
                     {link.label}
                   </span>
                 </Link>

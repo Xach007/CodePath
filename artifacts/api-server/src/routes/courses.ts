@@ -84,6 +84,13 @@ router.get("/modules/:moduleId", authMiddleware, async (req, res): Promise<void>
     return;
   }
 
+  const [course] = await db.select().from(coursesTable)
+    .where(eq(coursesTable.id, mod.courseId));
+  if (!course || !course.isPublished) {
+    res.status(404).json({ error: "Module not found" });
+    return;
+  }
+
   const lessons = await db.select().from(lessonsTable)
     .where(eq(lessonsTable.moduleId, mod.id))
     .orderBy(asc(lessonsTable.orderIndex));
